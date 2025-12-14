@@ -125,6 +125,11 @@ const AutocompleteInput = ({
     inputRef.current?.focus();
   };
 
+  // Handle mouse down to prevent blur from firing before click
+  const handleMouseDown = (e) => {
+    e.preventDefault(); // Prevent blur
+  };
+
   return (
     <div className="relative">
       <div className="relative">
@@ -144,7 +149,7 @@ const AutocompleteInput = ({
           }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => {
-            setTimeout(() => setIsOpen(false), 200);
+            setTimeout(() => setIsOpen(false), 150);
             onBlur?.();
           }}
           onKeyDown={handleKeyDown}
@@ -171,6 +176,7 @@ const AutocompleteInput = ({
           ref={listRef}
           id={`${id}-listbox`}
           role="listbox"
+          onMouseDown={handleMouseDown}
           className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
