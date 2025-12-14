@@ -1,10 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
+// Load environment variables
 dotenv.config();
 
+// Import routes
+const authRoutes = require('./routes/auth');
+
 const app = express();
+
+// ============ DATABASE CONNECTION ============
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      // These options are no longer needed in Mongoose 6+, but kept for compatibility
+    });
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+    process.exit(1);
+  }
+};
+
+// Connect to database
+connectDB();
 
 // ============ MIDDLEWARE ============
 app.use(
@@ -17,12 +38,17 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ============ ROUTES ============
+app.use('/api/auth', authRoutes);
+
 // ============ HEALTH CHECK ============
 app.get('/api/health', (req, res) => {
   res.json({
     message: 'SerendibTrip Backend is running',
     status: 'OK',
     timestamp: new Date().toISOString(),
+    database:
+      mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
   });
 });
 
