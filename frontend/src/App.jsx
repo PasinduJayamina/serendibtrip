@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ToastProvider } from './components/ui/Toast';
+import { ToastProvider, useToast } from './components/ui/Toast';
 import TripPlannerForm from './components/TripPlannerForm';
 import WeatherWidget from './components/WeatherWidget';
+import AttractionMap from './components/AttractionMap';
+import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { format } from 'date-fns';
 import {
@@ -11,6 +13,7 @@ import {
   Users,
   Wallet,
   CloudSun,
+  Map,
 } from 'lucide-react';
 
 // Destination coordinates for Sri Lanka
@@ -97,6 +100,23 @@ function App() {
                 selectedDestination.charAt(0).toUpperCase() +
                 selectedDestination.slice(1)
               }
+            />
+          </div>
+
+          {/* Attractions Map Section */}
+          <div className="mt-8">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+              <Map className="w-6 h-6 text-[#208896]" />
+              Explore Attractions
+            </h2>
+            <AttractionMap
+              attractions={sampleAttractions}
+              onSelectAttraction={(attraction) => {
+                console.log('Selected attraction:', attraction);
+              }}
+              onAddToItinerary={(attraction) => {
+                console.log('Added to itinerary:', attraction);
+              }}
             />
           </div>
 
