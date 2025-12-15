@@ -6,3 +6,32 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* Leaflet custom styles */
+.leaflet-container {
+  font-family: inherit;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Fix for Leaflet tiles */
+.leaflet-tile-pane {
+  z-index: 1;
+}
+
+.leaflet-control-container {
+  z-index: 800;
+}
