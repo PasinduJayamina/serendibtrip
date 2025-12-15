@@ -8,6 +8,10 @@ dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const weatherRoutes = require('./routes/weather');
+
+// Import utilities
+const { startCacheCleanup } = require('./utils/cacheCleanup');
 
 const app = express();
 
@@ -40,6 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ============ ROUTES ============
 app.use('/api/auth', authRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // ============ HEALTH CHECK ============
 app.get('/api/health', (req, res) => {
@@ -71,4 +76,7 @@ app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV}`);
+
+  // Start cache cleanup cron jobs
+  startCacheCleanup();
 });
