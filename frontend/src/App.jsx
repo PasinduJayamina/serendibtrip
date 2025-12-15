@@ -1,15 +1,40 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ToastProvider } from './components/ui/Toast';
 import TripPlannerForm from './components/TripPlannerForm';
+import WeatherWidget from './components/WeatherWidget';
 import useTripStore from './store/tripStore';
 import { format } from 'date-fns';
-import { Trash2, MapPin, Calendar, Users, Wallet } from 'lucide-react';
+import {
+  Trash2,
+  MapPin,
+  Calendar,
+  Users,
+  Wallet,
+  CloudSun,
+} from 'lucide-react';
+
+// Destination coordinates for Sri Lanka
+const DESTINATION_COORDS = {
+  colombo: { lat: 6.9271, lng: 79.8612 },
+  kandy: { lat: 7.2906, lng: 80.6337 },
+  galle: { lat: 6.0535, lng: 80.221 },
+  mirissa: { lat: 5.9483, lng: 80.4716 },
+  'nuwara eliya': { lat: 6.9497, lng: 80.7891 },
+  sigiriya: { lat: 7.957, lng: 80.7603 },
+  anuradhapura: { lat: 8.3114, lng: 80.4037 },
+  trincomalee: { lat: 8.5874, lng: 81.2152 },
+  ella: { lat: 6.8667, lng: 81.0466 },
+  jaffna: { lat: 9.6615, lng: 80.0255 },
+};
 
 function App() {
   const addTrip = useTripStore((state) => state.addTrip);
   const deleteTrip = useTripStore((state) => state.deleteTrip);
   const trips = useTripStore((state) => state.trips);
   const currentTrip = useTripStore((state) => state.currentTrip);
+
+  // State for selected destination weather
+  const [selectedDestination, setSelectedDestination] = useState('colombo');
 
   // Sort trips in component with useMemo to avoid infinite loop
   const sortedTrips = useMemo(() => {
@@ -45,6 +70,35 @@ function App() {
           </div>
 
           <TripPlannerForm onSubmit={handleSubmit} />
+
+          {/* Weather Widget Section */}
+          <div className="mt-8">
+            <div className="flex items-center gap-4 mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <CloudSun className="w-6 h-6 text-[#208896]" />
+                Destination Weather
+              </h2>
+              <select
+                value={selectedDestination}
+                onChange={(e) => setSelectedDestination(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none"
+              >
+                {Object.keys(DESTINATION_COORDS).map((dest) => (
+                  <option key={dest} value={dest}>
+                    {dest.charAt(0).toUpperCase() + dest.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <WeatherWidget
+              latitude={DESTINATION_COORDS[selectedDestination].lat}
+              longitude={DESTINATION_COORDS[selectedDestination].lng}
+              destinationName={
+                selectedDestination.charAt(0).toUpperCase() +
+                selectedDestination.slice(1)
+              }
+            />
+          </div>
 
           {/* Saved Trips Section */}
           {sortedTrips.length > 0 && (
