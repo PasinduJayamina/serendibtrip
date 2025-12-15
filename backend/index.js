@@ -9,6 +9,7 @@ dotenv.config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const weatherRoutes = require('./routes/weather');
+const recommendationsRoutes = require('./routes/recommendations');
 
 // Import utilities
 const { startCacheCleanup } = require('./utils/cacheCleanup');
@@ -45,6 +46,7 @@ app.use(express.urlencoded({ extended: true }));
 // ============ ROUTES ============
 app.use('/api/auth', authRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/recommendations', recommendationsRoutes);
 
 // ============ HEALTH CHECK ============
 app.get('/api/health', (req, res) => {
