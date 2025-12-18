@@ -35,7 +35,11 @@ connectDB();
 // ============ MIDDLEWARE ============
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.CORS_ORIGIN,
+    ].filter(Boolean),
     credentials: true,
   })
 );

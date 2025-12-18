@@ -1,7 +1,73 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const {
+  generateCacheKey,
+  getCachedResponse,
+  cacheResponse,
+  estimateTokens,
+  selectOptimalModel,
+  createOptimizedItineraryPrompt,
+  checkRateLimit,
+} = require('./aiCostOptimizer');
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Available models to try (in order of preference)
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash-001',
+];
+
+/**
+ * Retry helper with exponential backoff and model fallback
+ */
+async function retryWithBackoff(promptFn, maxRetries = 2, initialDelay = 1500) {
+  let lastError;
+
+  // Try each model
+  for (let modelIndex = 0; modelIndex < GEMINI_MODELS.length; modelIndex++) {
+    const modelName = GEMINI_MODELS[modelIndex];
+    const model = genAI.getGenerativeModel({ model: modelName });
+
+    // Retry each model a few times
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(
+          `🤖 Trying ${modelName} (attempt ${attempt + 1}/${maxRetries})...`
+        );
+        return await promptFn(model);
+      } catch (error) {
+        lastError = error;
+
+        // If quota exceeded (429), immediately try next model
+        if (error.status === 429) {
+          console.log(`⚠️ ${modelName} quota exceeded, trying next model...`);
+          break; // Move to next model
+        }
+
+        // If overloaded (503), retry same model with backoff
+        if (error.status === 503 && attempt < maxRetries - 1) {
+          const delay = initialDelay * Math.pow(2, attempt);
+          console.log(
+            `⏳ ${modelName} overloaded, retrying in ${delay / 1000}s...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        // For other errors or last attempt, try next model
+        if (modelIndex < GEMINI_MODELS.length - 1) {
+          console.log(`⚠️ ${modelName} failed, trying next model...`);
+          break;
+        }
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 /**
  * Generates a detailed travel itinerary for Sri Lanka using Google Gemini AI
@@ -31,7 +97,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
  *   language: "English"
  * });
  */
-async function generateTravelItinerary(tripDetails) {
+async function generateTravelItinerary(tripDetails, userId = 'anonymous') {
   try {
     // Validate required fields
     const {
@@ -56,159 +122,44 @@ async function generateTravelItinerary(tripDetails) {
       throw new Error('Missing required trip details');
     }
 
-    // Calculate daily budget
-    const dailyBudget = Math.round(budget / duration);
-
-    // Initialize the Gemini model
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-    // Create detailed prompt for Gemini
-    const prompt = `You are an expert Sri Lankan travel planner with deep knowledge of local attractions, culture, cuisine, and hidden gems. Generate a detailed, personalized travel itinerary based on the following trip details:
-
-**TRIP DETAILS:**
-- Destination: ${destination}, Sri Lanka
-- Start Date: ${startDate}
-- End Date: ${endDate}
-- Duration: ${duration} days
-- Total Budget: LKR ${budget.toLocaleString()} (approximately LKR ${dailyBudget.toLocaleString()} per day)
-- Group Size: ${groupSize} ${groupSize === 1 ? 'person' : 'people'}
-- Interests: ${
-      interests.length > 0 ? interests.join(', ') : 'General sightseeing'
+    // ============ COST OPTIMIZATION 1: Check rate limit ============
+    const rateCheck = checkRateLimit(userId);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        error: `Rate limit exceeded. Please wait ${rateCheck.waitTime} seconds.`,
+        code: 'RATE_LIMITED',
+        retryAfter: rateCheck.waitTime,
+      };
     }
-- Response Language: ${language}
 
-**IMPORTANT INSTRUCTIONS:**
-1. Create a realistic day-by-day itinerary that respects the budget constraints
-2. Include specific times, locations with actual coordinates in Sri Lanka
-3. Consider travel time between locations
-4. Mix popular attractions with hidden local gems
-5. Include authentic local restaurants and food recommendations
-6. Account for ${groupSize} ${
-      groupSize === 1 ? 'person' : 'people'
-    } in cost estimates
-7. Consider weather and best times to visit each attraction
-8. Include practical tips specific to each location
-
-**RESPOND WITH ONLY VALID JSON in this exact structure (no markdown, no code blocks, just pure JSON):**
-
-{
-  "tripSummary": {
-    "destination": "${destination}",
-    "duration": ${duration},
-    "totalBudget": ${budget},
-    "groupSize": ${groupSize},
-    "bestTimeToVisit": "Brief description of weather/season",
-    "overallTheme": "A catchy theme for the trip"
-  },
-  "days": [
-    {
-      "day": 1,
-      "date": "${startDate}",
-      "theme": "Day theme (e.g., Arrival & Cultural Exploration)",
-      "activities": [
-        {
-          "time": "09:00",
-          "name": "Activity Name",
-          "description": "Detailed description of the activity (2-3 sentences)",
-          "duration": "2 hours",
-          "location": "Specific location name",
-          "coordinates": { "lat": 7.2906, "lng": 80.6337 },
-          "cost": 5000,
-          "currency": "LKR",
-          "tips": "Practical tips for this activity",
-          "category": "culture|nature|adventure|food|relaxation|shopping"
-        }
-      ],
-      "meals": {
-        "breakfast": {
-          "name": "Restaurant/Place Name",
-          "cuisine": "Sri Lankan/International/etc",
-          "specialty": "Must-try dish",
-          "priceRange": "$|$$|$$$",
-          "estimatedCost": 1500,
-          "location": "Location",
-          "coordinates": { "lat": 7.2906, "lng": 80.6337 }
-        },
-        "lunch": { "same structure as breakfast" },
-        "dinner": { "same structure as breakfast" }
-      },
-      "accommodation": {
-        "name": "Hotel/Guesthouse Name",
-        "type": "hotel|guesthouse|resort|hostel",
-        "pricePerNight": 8000,
-        "location": "Area name",
-        "amenities": ["WiFi", "AC", "Pool"]
-      },
-      "transportation": {
-        "mode": "tuk-tuk|taxi|bus|train|walking",
-        "estimatedCost": 2000,
-        "tips": "Transportation tips for the day"
-      },
-      "totalDayBudget": 25000,
-      "dailyTips": ["Tip 1", "Tip 2"]
+    // ============ COST OPTIMIZATION 2: Check cache ============
+    const cacheKey = generateCacheKey(tripDetails);
+    const cachedResponse = getCachedResponse(cacheKey);
+    if (cachedResponse) {
+      console.log('💰 Saved API call with cache hit!');
+      return {
+        success: true,
+        data: cachedResponse,
+        fromCache: true,
+      };
     }
-  ],
-  "topAttractions": [
-    {
-      "name": "Attraction Name",
-      "description": "Brief description",
-      "location": "Location",
-      "coordinates": { "lat": 7.2906, "lng": 80.6337 },
-      "entryFee": 2500,
-      "bestTime": "Best time to visit",
-      "duration": "Recommended duration",
-      "rating": 4.5
-    }
-  ],
-  "recommendedRestaurants": [
-    {
-      "name": "Restaurant Name",
-      "cuisine": "Cuisine type",
-      "specialty": "Signature dish",
-      "priceRange": "$$",
-      "rating": 4.5,
-      "location": "Location",
-      "coordinates": { "lat": 7.2906, "lng": 80.6337 }
-    }
-  ],
-  "culturalTips": [
-    "Important cultural tip 1",
-    "Important cultural tip 2"
-  ],
-  "safetyTips": [
-    "Safety tip 1",
-    "Safety tip 2"
-  ],
-  "transportationGuide": {
-    "gettingThere": "How to reach ${destination}",
-    "localTransport": "Local transportation options",
-    "tips": ["Transport tip 1", "Transport tip 2"],
-    "estimatedTransportBudget": 15000
-  },
-  "packingList": [
-    "Essential item 1",
-    "Essential item 2"
-  ],
-  "emergencyContacts": {
-    "police": "119",
-    "ambulance": "110",
-    "touristPolice": "1912",
-    "nearestHospital": "Hospital name and location"
-  },
-  "budgetBreakdown": {
-    "accommodation": 40000,
-    "food": 30000,
-    "transportation": 15000,
-    "activities": 25000,
-    "miscellaneous": 10000,
-    "total": ${budget}
-  }
-}
 
-Generate a complete, realistic itinerary with actual Sri Lankan locations, restaurants, and attractions. All coordinates must be real locations in Sri Lanka. Costs should be realistic for Sri Lanka in LKR.`;
+    // ============ COST OPTIMIZATION 3: Use optimized prompt ============
+    // This reduces tokens by ~40%
+    const prompt = createOptimizedItineraryPrompt(tripDetails);
+    const tokenEstimate = estimateTokens(prompt);
+    console.log(`📊 Estimated input tokens: ${tokenEstimate}`);
 
-    // Generate content using Gemini
-    const result = await model.generateContent(prompt);
+    // ============ COST OPTIMIZATION 4: Select optimal model ============
+    const recommendedModel = selectOptimalModel(tripDetails);
+    console.log(`🎯 Using model: ${recommendedModel} (based on complexity)`);
+
+    // Generate content using Gemini with retry and model fallback
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(prompt);
+    });
+
     const response = await result.response;
     const text = response.text();
 
@@ -253,9 +204,15 @@ Generate a complete, realistic itinerary with actual Sri Lankan locations, resta
     };
 
     console.log(`✅ Generated itinerary for ${destination} (${duration} days)`);
+
+    // ============ COST OPTIMIZATION 5: Cache the response ============
+    cacheResponse(cacheKey, itinerary);
+    console.log('💾 Response cached for future requests');
+
     return {
       success: true,
       data: itinerary,
+      fromCache: false,
     };
   } catch (error) {
     console.error('❌ Error generating travel itinerary:', error);
@@ -313,8 +270,6 @@ async function generateActivityRecommendations(params) {
       throw new Error('Location is required');
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     const prompt = `You are a Sri Lankan travel expert. Suggest 5 activities near ${location}, Sri Lanka for someone interested in ${
       interests.join(', ') || 'general sightseeing'
     }.
@@ -339,7 +294,9 @@ Respond with ONLY valid JSON (no markdown):
   ]
 }`;
 
-    const result = await model.generateContent(prompt);
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(prompt);
+    });
     const response = await result.response;
     let text = response.text().trim();
 
@@ -378,8 +335,6 @@ Respond with ONLY valid JSON (no markdown):
  */
 async function generateFoodRecommendations(location, preferences = [], budget) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     const prompt = `You are a Sri Lankan food expert. Recommend local food experiences in ${location}, Sri Lanka.
 
 Preferences: ${preferences.join(', ') || 'No specific preferences'}
@@ -411,7 +366,9 @@ Respond with ONLY valid JSON (no markdown):
   "mustTryDishes": ["Dish 1", "Dish 2"]
 }`;
 
-    const result = await model.generateContent(prompt);
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(prompt);
+    });
     const response = await result.response;
     let text = response.text().trim();
 
