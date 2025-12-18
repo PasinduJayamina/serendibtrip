@@ -11,6 +11,8 @@ import TripPlannerForm from './components/TripPlannerForm';
 import WeatherWidget from './components/WeatherWidget';
 import AttractionMap from './components/AttractionMap';
 import ItineraryPage from './pages/ItineraryPage';
+import RecommendationsPage from './pages/RecommendationsPage';
+import MyItineraryPage from './pages/MyItineraryPage';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { format } from 'date-fns';
@@ -24,6 +26,7 @@ import {
   Map,
   Route as RouteIcon,
   Home,
+  Sparkles,
 } from 'lucide-react';
 
 // Navigation component
@@ -51,6 +54,17 @@ const Navigation = () => {
             >
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
+            </Link>
+            <Link
+              to="/recommendations"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                location.pathname === '/recommendations'
+                  ? 'bg-[#208896] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">AI Picks</span>
             </Link>
             <Link
               to="/itinerary"
@@ -289,7 +303,9 @@ function App() {
         <Navigation />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/itinerary" element={<ItineraryPage />} />
+          <Route path="/recommendations" element={<RecommendationsPage />} />
+          <Route path="/itinerary" element={<MyItineraryPage />} />
+          <Route path="/sample-itinerary" element={<ItineraryPage />} />
         </Routes>
       </ToastProvider>
     </BrowserRouter>
