@@ -1,5 +1,147 @@
 const mongoose = require('mongoose');
 
+// Preferences sub-schema
+const preferencesSchema = new mongoose.Schema(
+  {
+    favoriteDestinations: {
+      type: [String],
+      default: [],
+    },
+    travelStyle: {
+      type: String,
+      enum: [
+        'luxury',
+        'budget',
+        'adventure',
+        'cultural',
+        'relaxation',
+        'family',
+        'backpacker',
+        'eco-friendly',
+      ],
+      default: 'budget',
+    },
+    dietaryRestrictions: {
+      type: [String],
+      default: [],
+    },
+    mobilityNeeds: {
+      type: [String],
+      default: [],
+    },
+    currency: {
+      type: String,
+      default: 'LKR',
+    },
+    language: {
+      type: String,
+      default: 'English',
+    },
+  },
+  { _id: false }
+);
+
+// Review sub-schema
+const reviewSchema = new mongoose.Schema(
+  {
+    attractionId: {
+      type: String,
+      required: true,
+    },
+    attractionName: {
+      type: String,
+      required: true,
+    },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      required: true,
+    },
+    comment: {
+      type: String,
+      maxlength: 1000,
+    },
+    visitDate: {
+      type: Date,
+    },
+    photos: {
+      type: [String],
+      default: [],
+    },
+  },
+  { timestamps: true }
+);
+
+// Saved trip sub-schema
+const savedTripSchema = new mongoose.Schema(
+  {
+    tripId: {
+      type: String,
+      required: true,
+    },
+    destination: {
+      type: String,
+      required: true,
+    },
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
+      type: Date,
+      required: true,
+    },
+    budget: {
+      type: Number,
+    },
+    groupSize: {
+      type: Number,
+      default: 1,
+    },
+    itinerary: {
+      type: mongoose.Schema.Types.Mixed,
+    },
+    status: {
+      type: String,
+      enum: ['planned', 'ongoing', 'completed', 'cancelled'],
+      default: 'planned',
+    },
+  },
+  { timestamps: true }
+);
+
+// Favorite attraction sub-schema
+const favoriteAttractionSchema = new mongoose.Schema(
+  {
+    attractionId: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    category: {
+      type: String,
+    },
+    location: {
+      type: String,
+    },
+    image: {
+      type: String,
+    },
+    rating: {
+      type: Number,
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -25,6 +167,36 @@ const userSchema = new mongoose.Schema(
       trim: true,
       minlength: [2, 'Full name must be at least 2 characters'],
       maxlength: [100, 'Full name cannot exceed 100 characters'],
+    },
+    profilePicture: {
+      type: String,
+      default: '',
+    },
+    bio: {
+      type: String,
+      maxlength: [500, 'Bio cannot exceed 500 characters'],
+      default: '',
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    preferences: {
+      type: preferencesSchema,
+      default: () => ({}),
+    },
+    savedTrips: {
+      type: [savedTripSchema],
+      default: [],
+    },
+    favoriteAttractions: {
+      type: [favoriteAttractionSchema],
+      default: [],
+    },
+    reviews: {
+      type: [reviewSchema],
+      default: [],
     },
     refreshToken: {
       type: String,

@@ -13,8 +13,10 @@ import AttractionMap from './components/AttractionMap';
 import ItineraryPage from './pages/ItineraryPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import MyItineraryPage from './pages/MyItineraryPage';
+import UserProfilePage from './pages/UserProfilePage';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
+import { useUserStore } from './store/userStore';
 import { format } from 'date-fns';
 import {
   Trash2,
@@ -27,6 +29,7 @@ import {
   Route as RouteIcon,
   Home,
   Sparkles,
+  User,
 } from 'lucide-react';
 
 // Navigation component
@@ -76,6 +79,17 @@ const Navigation = () => {
             >
               <RouteIcon className="w-4 h-4" />
               <span className="hidden sm:inline">My Itinerary</span>
+            </Link>
+            <Link
+              to="/profile"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                location.pathname === '/profile'
+                  ? 'bg-[#208896] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Profile</span>
             </Link>
           </div>
         </div>
@@ -306,6 +320,7 @@ function App() {
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/itinerary" element={<MyItineraryPage />} />
           <Route path="/sample-itinerary" element={<ItineraryPage />} />
+          <Route path="/profile" element={<UserProfilePage />} />
         </Routes>
       </ToastProvider>
     </BrowserRouter>
