@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 
 /**
  * Zustand store for AI recommendations
- * Persists to sessionStorage so recommendations survive page navigation
- * but clear when the browser tab is closed
+ * Persists to localStorage so recommendations survive page navigation and refresh
+ * Recommendations remain until user explicitly changes inputs
  */
 export const useRecommendationsStore = create(
   persist(
@@ -66,13 +66,13 @@ export const useRecommendationsStore = create(
         );
       },
 
-      // Check if recommendations are still valid (1 hour cache)
+      // Check if recommendations are still valid (24 hour cache for localStorage)
       isValid: () => {
         const { fetchedAt, recommendations } = get();
         if (!recommendations || !fetchedAt) return false;
 
-        const ONE_HOUR = 60 * 60 * 1000;
-        return Date.now() - fetchedAt < ONE_HOUR;
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        return Date.now() - fetchedAt < TWENTY_FOUR_HOURS;
       },
 
       // Get cached recommendations if valid and params match
@@ -84,13 +84,22 @@ export const useRecommendationsStore = create(
         }
         return null;
       },
+
+      // Get stored params (for restoring state)
+      getStoredParams: () => {
+        return get().params;
+      },
+
+      // Check if we have any stored recommendations
+      hasStoredRecommendations: () => {
+        const { recommendations, params } = get();
+        return !!(recommendations && params);
+      },
     }),
     {
       name: 'serendibtrip-recommendations',
-      version: 1,
-      // Use sessionStorage instead of localStorage
-      // This clears when tab is closed but persists during navigation
-      storage: createJSONStorage(() => sessionStorage),
+      version: 2,
+      // Use localStorage for persistence across sessions
     }
   )
 );

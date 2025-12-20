@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as userApi from '../services/userApi';
+import * as authApi from '../services/authApi';
 
 /**
  * Zustand store for user profile management
@@ -29,6 +30,58 @@ export const useUserStore = create(
 
       // ============ AUTH ACTIONS ============
 
+      login: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authApi.login({ email, password });
+          authApi.storeTokens(
+            response.data.accessToken,
+            response.data.refreshToken
+          );
+          set({
+            user: response.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          // Fetch full profile after login
+          get().fetchProfile();
+          return response;
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Login failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      register: async (email, password, fullName) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authApi.register({
+            email,
+            password,
+            fullName,
+          });
+          authApi.storeTokens(
+            response.data.accessToken,
+            response.data.refreshToken
+          );
+          set({
+            user: response.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return response;
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Registration failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
       setUser: (user) =>
         set({
           user,
@@ -37,8 +90,7 @@ export const useUserStore = create(
         }),
 
       logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        authApi.clearTokens();
         set({
           user: null,
           isAuthenticated: false,

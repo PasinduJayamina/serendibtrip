@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   BrowserRouter,
   Routes,
   Route,
   Link,
   useLocation,
+  useNavigate,
 } from 'react-router-dom';
 import { ToastProvider, useToast } from './components/ui/Toast';
+import ProtectedRoute from './components/ProtectedRoute';
 import TripPlannerForm from './components/TripPlannerForm';
 import WeatherWidget from './components/WeatherWidget';
 import AttractionMap from './components/AttractionMap';
@@ -14,6 +16,8 @@ import ItineraryPage from './pages/ItineraryPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import MyItineraryPage from './pages/MyItineraryPage';
 import UserProfilePage from './pages/UserProfilePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
@@ -30,69 +34,192 @@ import {
   Home,
   Sparkles,
   User,
+  LogIn,
+  LogOut,
+  ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react';
 
 // Navigation component
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useUserStore();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const toast = useToast();
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Signed out successfully');
+    navigate('/');
+    setShowUserMenu(false);
+  };
+
+  const navLinks = [
+    { to: '/', label: 'Home', icon: Home },
+    { to: '/recommendations', label: 'AI Picks', icon: Sparkles },
+    { to: '/itinerary', label: 'My Itinerary', icon: RouteIcon },
+  ];
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <span className="text-2xl font-bold text-[#208896]">
               SerendibTrip
             </span>
           </Link>
 
-          <div className="flex items-center gap-1">
-            <Link
-              to="/"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === '/'
-                  ? 'bg-[#208896] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Home</span>
-            </Link>
-            <Link
-              to="/recommendations"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === '/recommendations'
-                  ? 'bg-[#208896] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">AI Picks</span>
-            </Link>
-            <Link
-              to="/itinerary"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === '/itinerary'
-                  ? 'bg-[#208896] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <RouteIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">My Itinerary</span>
-            </Link>
-            <Link
-              to="/profile"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                location.pathname === '/profile'
-                  ? 'bg-[#208896] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </Link>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  location.pathname === link.to
+                    ? 'bg-[#208896] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <link.icon className="w-4 h-4" />
+                <span>{link.label}</span>
+              </Link>
+            ))}
+
+            {/* Auth Section */}
+            {isAuthenticated ? (
+              <div className="relative ml-2">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-[#208896] rounded-full flex items-center justify-center text-white font-medium">
+                    {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <span className="text-gray-700 font-medium hidden lg:block">
+                    {user?.fullName?.split(' ')[0] || 'User'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </button>
+
+                {/* Dropdown */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <Link
+                      to="/profile"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    >
+                      <User className="w-4 h-4" />
+                      My Profile
+                    </Link>
+                    <hr className="my-1 border-gray-100" />
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 ml-2">
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 bg-[#208896] text-white rounded-lg font-medium hover:bg-[#1a6d78] transition-colors"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            {showMobileMenu ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {showMobileMenu && (
+          <div className="md:hidden pb-4 border-t border-gray-100 mt-2 pt-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setShowMobileMenu(false)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium ${
+                  location.pathname === link.to
+                    ? 'bg-[#208896] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <link.icon className="w-5 h-5" />
+                {link.label}
+              </Link>
+            ))}
+
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  <User className="w-5 h-5" />
+                  My Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setShowMobileMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg w-full text-left"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 mt-2 px-2">
+                <Link
+                  to="/login"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="px-4 py-3 text-center text-gray-600 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="px-4 py-3 text-center bg-[#208896] text-white rounded-lg font-medium hover:bg-[#1a6d78]"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </nav>
   );
@@ -114,10 +241,12 @@ const DESTINATION_COORDS = {
 
 // Home Page Component
 function HomePage() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const addTrip = useTripStore((state) => state.addTrip);
   const deleteTrip = useTripStore((state) => state.deleteTrip);
   const trips = useTripStore((state) => state.trips);
-  const currentTrip = useTripStore((state) => state.currentTrip);
+  const { isAuthenticated, saveTrip } = useUserStore();
 
   // State for selected destination weather
   const [selectedDestination, setSelectedDestination] = useState('colombo');
@@ -131,37 +260,72 @@ function HomePage() {
   }, [trips]);
 
   const handleSubmit = async (formData) => {
-    // Save to Zustand store
+    // Save to local Zustand store
     const tripId = addTrip(formData);
     console.log('Trip saved with ID:', tripId);
-    console.log('Form Data:', formData);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // If authenticated, also save to user's profile
+    if (isAuthenticated) {
+      try {
+        await saveTrip({
+          destination: formData.destination,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          budget: formData.budget,
+          groupSize: formData.groupSize,
+          itinerary: { interests: formData.interests },
+        });
+        toast.success('Trip saved to your profile!');
+      } catch (error) {
+        console.error('Failed to save trip to profile:', error);
+      }
+    }
+
+    // Navigate to AI recommendations
+    navigate('/recommendations', { state: { tripData: formData } });
   };
 
   const handleDelete = (tripId) => {
     if (window.confirm('Are you sure you want to delete this trip?')) {
       deleteTrip(tripId);
+      toast.success('Trip deleted');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#208896]">SerendibTrip</h1>
-          <p className="text-gray-600 mt-2">Your Sri Lanka Travel Planner</p>
-          <Link
-            to="/itinerary"
-            className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md"
-          >
-            <RouteIcon className="w-5 h-5" />
-            View Sample AI Itinerary
-          </Link>
+    <div className="min-h-screen bg-gradient-to-b from-[#f0fafb] to-white">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-[#208896] to-[#1a6d78] text-white py-12 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Discover Sri Lanka
+          </h1>
+          <p className="text-lg text-white/80 mb-6 max-w-2xl mx-auto">
+            Plan your perfect trip with AI-powered recommendations, real-time
+            weather, and personalized itineraries
+          </p>
+          {!isAuthenticated && (
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#208896] rounded-lg font-medium hover:bg-gray-100 transition-all shadow-lg"
+            >
+              Start Planning Free
+            </Link>
+          )}
         </div>
+      </div>
 
-        <TripPlannerForm onSubmit={handleSubmit} />
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Trip Planner Form */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 -mt-8 relative z-10">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Plan Your Trip
+          </h2>
+          <p className="text-gray-500 mb-6">
+            Fill in the details to get personalized recommendations
+          </p>
+          <TripPlannerForm onSubmit={handleSubmit} />
+        </div>
 
         {/* Weather Widget Section */}
         <div className="mt-8">
@@ -275,6 +439,19 @@ function HomePage() {
                           </span>
                         ))}
                       </div>
+
+                      {/* Continue Planning Button */}
+                      <button
+                        onClick={() =>
+                          navigate('/recommendations', {
+                            state: { tripData: trip },
+                          })
+                        }
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#208896] text-white rounded-lg text-sm font-medium hover:bg-[#1a6d78] transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Get AI Recommendations
+                      </button>
                     </div>
 
                     <button
@@ -292,18 +469,16 @@ function HomePage() {
         )}
 
         {/* Debug: Show store state */}
-        <div className="mt-8 p-4 bg-gray-800 rounded-xl text-white">
-          <h3 className="text-lg font-bold mb-2">
-            🔧 Store Debug (check console too)
-          </h3>
-          <pre className="text-xs overflow-auto max-h-60">
-            {JSON.stringify(
-              { tripCount: trips.length, currentTrip: currentTrip?.id },
-              null,
-              2
-            )}
-          </pre>
-        </div>
+        {process.env.NODE_ENV === 'development' && false && (
+          <div className="mt-8 p-4 bg-gray-800 rounded-xl text-white">
+            <h3 className="text-lg font-bold mb-2">
+              🔧 Store Debug (check console too)
+            </h3>
+            <pre className="text-xs overflow-auto max-h-60">
+              {JSON.stringify({ tripCount: trips.length }, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -311,19 +486,52 @@ function HomePage() {
 
 // Main App with Router
 function App() {
+  const { fetchProfile } = useUserStore();
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchProfile().catch(() => {
+        // Token invalid, will be handled by profile page
+      });
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <ToastProvider>
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/recommendations" element={<RecommendationsPage />} />
-          <Route path="/itinerary" element={<MyItineraryPage />} />
-          <Route path="/sample-itinerary" element={<ItineraryPage />} />
-          <Route path="/profile" element={<UserProfilePage />} />
-        </Routes>
+        <AppContent />
       </ToastProvider>
     </BrowserRouter>
+  );
+}
+
+// App content (needs to be inside Router for useNavigate in Navigation)
+function AppContent() {
+  const location = useLocation();
+  const hideNav = ['/login', '/register'].includes(location.pathname);
+
+  return (
+    <>
+      {!hideNav && <Navigation />}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/recommendations" element={<RecommendationsPage />} />
+        <Route path="/itinerary" element={<MyItineraryPage />} />
+        <Route path="/sample-itinerary" element={<ItineraryPage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <UserProfilePage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 
