@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+  calculateBudgetAllocation,
+  categorizeExpense,
+} from '../services/budgetService';
 
 /**
  * Zustand store for managing user's custom itinerary
@@ -19,6 +23,7 @@ export const useItineraryStore = create(
         duration: 0,
         budget: 0,
         groupSize: 1,
+        interests: [],
       },
 
       // Added recommendations (not yet assigned to days)
@@ -31,13 +36,47 @@ export const useItineraryStore = create(
       lastRecommendations: null,
       lastRecommendationsParams: null,
 
+      // Expense tracking
+      expenses: {
+        accommodation: { allocated: 0, spent: 0, items: [] },
+        food: { allocated: 0, spent: 0, items: [] },
+        transportation: { allocated: 0, spent: 0, items: [] },
+        activities: { allocated: 0, spent: 0, items: [] },
+        misc: { allocated: 0, spent: 0, items: [] },
+      },
+
+      // Budget allocation
+      budgetAllocation: null,
+
       // ============ ACTIONS ============
 
       // Set trip details
       setTripDetails: (details) =>
-        set((state) => ({
-          tripDetails: { ...state.tripDetails, ...details },
-        })),
+        set((state) => {
+          const newTripDetails = { ...state.tripDetails, ...details };
+
+          // Recalculate budget allocation when trip details change
+          let newBudgetAllocation = state.budgetAllocation;
+          if (
+            newTripDetails.budget > 0 &&
+            newTripDetails.duration > 0 &&
+            newTripDetails.groupSize > 0
+          ) {
+            newBudgetAllocation = calculateBudgetAllocation({
+              totalBudget: newTripDetails.budget,
+              duration: newTripDetails.duration,
+              groupSize: newTripDetails.groupSize,
+              destination: newTripDetails.destination,
+              interests: newTripDetails.interests || [],
+              savedItems: state.savedItems,
+            });
+          }
+
+          return {
+            tripDetails: newTripDetails,
+            budgetAllocation: newBudgetAllocation,
+          };
+        }),
 
       // Initialize days based on duration
       initializeDays: (duration, startDate) => {
@@ -64,23 +103,98 @@ export const useItineraryStore = create(
           if (state.savedItems.some((i) => i.name === item.name)) {
             return state;
           }
+
+          // Categorize the expense
+          const expenseCategory = categorizeExpense(item);
+          const itemCost = item.cost || item.entryFee || 0;
+
+          // Create the new saved item
+          const newItem = {
+            ...item,
+            savedAt: new Date().toISOString(),
+            id: `${item.name}-${Date.now()}`,
+            expenseCategory,
+            trackedCost: itemCost,
+          };
+
+          const newSavedItems = [...state.savedItems, newItem];
+
+          // Update expense tracking
+          const newExpenses = { ...state.expenses };
+          if (newExpenses[expenseCategory]) {
+            newExpenses[expenseCategory] = {
+              ...newExpenses[expenseCategory],
+              spent: newExpenses[expenseCategory].spent + itemCost,
+              items: [...newExpenses[expenseCategory].items, newItem],
+            };
+          }
+
+          // Recalculate budget allocation
+          let newBudgetAllocation = state.budgetAllocation;
+          if (state.tripDetails.budget > 0) {
+            newBudgetAllocation = calculateBudgetAllocation({
+              totalBudget: state.tripDetails.budget,
+              duration: state.tripDetails.duration,
+              groupSize: state.tripDetails.groupSize,
+              destination: state.tripDetails.destination,
+              interests: state.tripDetails.interests || [],
+              savedItems: newSavedItems,
+            });
+          }
+
           return {
-            savedItems: [
-              ...state.savedItems,
-              {
-                ...item,
-                savedAt: new Date().toISOString(),
-                id: `${item.name}-${Date.now()}`,
-              },
-            ],
+            savedItems: newSavedItems,
+            expenses: newExpenses,
+            budgetAllocation: newBudgetAllocation,
           };
         }),
 
       // Remove from saved items
       removeFromSaved: (itemName) =>
-        set((state) => ({
-          savedItems: state.savedItems.filter((i) => i.name !== itemName),
-        })),
+        set((state) => {
+          const itemToRemove = state.savedItems.find(
+            (i) => i.name === itemName
+          );
+          if (!itemToRemove) return state;
+
+          const expenseCategory = itemToRemove.expenseCategory || 'misc';
+          const itemCost = itemToRemove.trackedCost || 0;
+
+          // Update expense tracking
+          const newExpenses = { ...state.expenses };
+          if (newExpenses[expenseCategory]) {
+            newExpenses[expenseCategory] = {
+              ...newExpenses[expenseCategory],
+              spent: Math.max(0, newExpenses[expenseCategory].spent - itemCost),
+              items: newExpenses[expenseCategory].items.filter(
+                (i) => i.name !== itemName
+              ),
+            };
+          }
+
+          const newSavedItems = state.savedItems.filter(
+            (i) => i.name !== itemName
+          );
+
+          // Recalculate budget allocation
+          let newBudgetAllocation = state.budgetAllocation;
+          if (state.tripDetails.budget > 0) {
+            newBudgetAllocation = calculateBudgetAllocation({
+              totalBudget: state.tripDetails.budget,
+              duration: state.tripDetails.duration,
+              groupSize: state.tripDetails.groupSize,
+              destination: state.tripDetails.destination,
+              interests: state.tripDetails.interests || [],
+              savedItems: newSavedItems,
+            });
+          }
+
+          return {
+            savedItems: newSavedItems,
+            expenses: newExpenses,
+            budgetAllocation: newBudgetAllocation,
+          };
+        }),
 
       // Check if item is saved
       isSaved: (itemName) => {
@@ -200,8 +314,38 @@ export const useItineraryStore = create(
             duration: 0,
             budget: 0,
             groupSize: 1,
+            interests: [],
           },
+          expenses: {
+            accommodation: { allocated: 0, spent: 0, items: [] },
+            food: { allocated: 0, spent: 0, items: [] },
+            transportation: { allocated: 0, spent: 0, items: [] },
+            activities: { allocated: 0, spent: 0, items: [] },
+            misc: { allocated: 0, spent: 0, items: [] },
+          },
+          budgetAllocation: null,
         }),
+
+      // Get expense summary
+      getExpenseSummary: () => {
+        const { expenses, tripDetails, budgetAllocation } = get();
+        const totalSpent = Object.values(expenses).reduce(
+          (sum, cat) => sum + cat.spent,
+          0
+        );
+
+        return {
+          totalBudget: tripDetails.budget,
+          totalSpent,
+          remaining: tripDetails.budget - totalSpent,
+          percentageUsed:
+            tripDetails.budget > 0
+              ? Math.round((totalSpent / tripDetails.budget) * 100)
+              : 0,
+          byCategory: expenses,
+          allocation: budgetAllocation,
+        };
+      },
 
       // Export itinerary as JSON
       exportItinerary: () => {
@@ -210,13 +354,15 @@ export const useItineraryStore = create(
           tripDetails: state.tripDetails,
           days: state.days,
           savedItems: state.savedItems,
+          expenses: state.expenses,
+          budgetAllocation: state.budgetAllocation,
           exportedAt: new Date().toISOString(),
         };
       },
     }),
     {
       name: 'serendibtrip-itinerary',
-      version: 1,
+      version: 2,
     }
   )
 );

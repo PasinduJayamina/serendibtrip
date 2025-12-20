@@ -12,14 +12,19 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   StarIcon,
+  ChartBarIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useItineraryStore } from '../store/itineraryStore';
+import { useRecommendationsStore } from '../store/recommendationsStore';
 import { formatCurrency, CategoryBadge } from '../utils/categoryIcons';
+import { getAllCategories } from '../services/budgetService';
 
 const MyItineraryPage = () => {
   const navigate = useNavigate();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(true);
 
   const {
     savedItems,
@@ -27,9 +32,17 @@ const MyItineraryPage = () => {
     removeFromSaved,
     clearItinerary,
     getEstimatedBudget,
+    getExpenseSummary,
+    budgetAllocation,
   } = useItineraryStore();
 
+  // Get stored recommendations params for navigation
+  const { params: storedParams, hasStoredRecommendations } =
+    useRecommendationsStore();
+
   const estimatedBudget = getEstimatedBudget();
+  const expenseSummary = getExpenseSummary();
+  const categories = getAllCategories();
 
   // Group saved items by type
   const attractions = savedItems.filter(
@@ -183,9 +196,137 @@ const MyItineraryPage = () => {
             <div className="text-2xl font-bold text-green-600">
               {formatCurrency(estimatedBudget)}
             </div>
-            <div className="text-sm text-gray-500">Est. Budget</div>
+            <div className="text-sm text-gray-500">Est. Cost</div>
           </div>
         </div>
+
+        {/* Budget & Expense Breakdown */}
+        {tripDetails.budget > 0 && (
+          <div className="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+            <button
+              onClick={() => setShowExpenseBreakdown(!showExpenseBreakdown)}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-2">
+                <ChartBarIcon className="w-5 h-5 text-teal-600" />
+                <h3 className="font-semibold text-gray-900">
+                  Budget & Expense Tracking
+                </h3>
+              </div>
+              <span className="text-gray-400">
+                {showExpenseBreakdown ? '−' : '+'}
+              </span>
+            </button>
+
+            {showExpenseBreakdown && (
+              <div className="px-4 pb-4 space-y-4">
+                {/* Overall Budget Progress */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Budget Used
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {formatCurrency(expenseSummary.totalSpent)} /{' '}
+                      {formatCurrency(tripDetails.budget)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className={`h-3 rounded-full transition-all ${
+                        expenseSummary.percentageUsed > 90
+                          ? 'bg-red-500'
+                          : expenseSummary.percentageUsed > 70
+                          ? 'bg-yellow-500'
+                          : 'bg-teal-500'
+                      }`}
+                      style={{
+                        width: `${Math.min(
+                          expenseSummary.percentageUsed,
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2 text-xs text-gray-500">
+                    <span>{expenseSummary.percentageUsed}% used</span>
+                    <span>
+                      {formatCurrency(expenseSummary.remaining)} remaining
+                    </span>
+                  </div>
+                </div>
+
+                {/* Category Breakdown */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {Object.entries(categories).map(([key, category]) => {
+                    const spent = expenseSummary.byCategory[key]?.spent || 0;
+                    const allocated =
+                      budgetAllocation?.categories[key]?.total || 0;
+                    const percentage =
+                      allocated > 0 ? Math.round((spent / allocated) * 100) : 0;
+
+                    return (
+                      <div
+                        key={key}
+                        className="bg-gray-50 rounded-lg p-3 text-center"
+                      >
+                        <div className="text-2xl mb-1">{category.icon}</div>
+                        <div className="text-xs text-gray-500 mb-1">
+                          {category.label}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(spent)}
+                        </div>
+                        {allocated > 0 && (
+                          <div className="text-xs text-gray-400">
+                            / {formatCurrency(allocated)}
+                          </div>
+                        )}
+                        {allocated > 0 && (
+                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                            <div
+                              className={`h-1 rounded-full ${
+                                percentage > 100
+                                  ? 'bg-red-500'
+                                  : percentage > 80
+                                  ? 'bg-yellow-500'
+                                  : 'bg-teal-500'
+                              }`}
+                              style={{
+                                width: `${Math.min(percentage, 100)}%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Daily Budget Info */}
+                {tripDetails.duration > 0 && (
+                  <div className="flex items-center justify-between text-sm bg-teal-50 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <BanknotesIcon className="w-4 h-4 text-teal-600" />
+                      <span className="text-teal-800">
+                        Daily budget per person:
+                      </span>
+                    </div>
+                    <span className="font-semibold text-teal-900">
+                      {formatCurrency(
+                        Math.round(
+                          tripDetails.budget /
+                            tripDetails.duration /
+                            (tripDetails.groupSize || 1)
+                        )
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Attractions Section */}
         {attractions.length > 0 && (

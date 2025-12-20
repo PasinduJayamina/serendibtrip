@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { RecommendationPanel } from '../components/recommendations';
+import WeatherWidget from '../components/WeatherWidget';
+import AttractionMap from '../components/AttractionMap';
 import {
   MapPinIcon,
   SparklesIcon,
@@ -9,34 +11,89 @@ import {
   CurrencyDollarIcon,
   CheckCircleIcon,
   ArrowRightIcon,
+  CloudIcon,
+  MapIcon,
 } from '@heroicons/react/24/outline';
 import { useItineraryStore } from '../store/itineraryStore';
 import { useRecommendationsStore } from '../store/recommendationsStore';
+import { sampleAttractions } from '../data/attractions';
 
-// Sri Lanka destinations
-const DESTINATIONS = [
-  'Colombo',
-  'Kandy',
-  'Galle',
-  'Sigiriya',
-  'Nuwara Eliya',
-  'Ella',
-  'Mirissa',
-  'Trincomalee',
-  'Anuradhapura',
-  'Jaffna',
-];
+// Helper: map AI recommendations to AttractionMap format, filling coordinates from sampleAttractions if missing
+function getMapAttractions(
+  aiRecommendations,
+  destinationAttractions,
+  sampleAttractions,
+  coords,
+  destination
+) {
+  if (
+    !aiRecommendations ||
+    (!aiRecommendations.topAttractions &&
+      !aiRecommendations.recommendedRestaurants)
+  ) {
+    // fallback to sample attractions for destination
+    return destinationAttractions.length > 0
+      ? destinationAttractions
+      : sampleAttractions.slice(0, 5);
+  }
+  // Combine topAttractions and recommendedRestaurants
+  const aiRecs = [
+    ...(aiRecommendations.topAttractions || []),
+    ...(aiRecommendations.recommendedRestaurants || []),
+  ];
+  // Map to AttractionMap format
+  return aiRecs.map((rec, idx) => {
+    // Try to get coordinates from rec, else from sampleAttractions by name
+    let coordinates = rec.coordinates;
+    if (!coordinates && rec.name) {
+      const match = sampleAttractions.find(
+        (a) => a.name.toLowerCase() === rec.name.toLowerCase()
+      );
+      coordinates = match ? match.coordinates : undefined;
+    }
+    return {
+      id: rec.id || rec.name || idx,
+      name: rec.name,
+      description: rec.description,
+      category:
+        rec.category || (rec.type === 'restaurant' ? 'food' : 'culture'),
+      rating: rec.rating || 4.5,
+      coordinates: coordinates || { lat: coords.lat, lng: coords.lng },
+      estimatedCost: rec.estimatedCost || 0,
+      openingHours: rec.openingHours || '',
+      imageUrl: rec.imageUrl || '',
+      type: rec.type || 'attraction',
+      location: rec.location || destination,
+    };
+  });
+}
 
-// Interest options
+// Sri Lanka destinations with coordinates
+const DESTINATIONS = {
+  Colombo: { lat: 6.9271, lng: 79.8612 },
+  Kandy: { lat: 7.2906, lng: 80.6337 },
+  Galle: { lat: 6.0535, lng: 80.221 },
+  Sigiriya: { lat: 7.957, lng: 80.7603 },
+  'Nuwara Eliya': { lat: 6.9497, lng: 80.7891 },
+  Ella: { lat: 6.8667, lng: 81.0466 },
+  Mirissa: { lat: 5.9483, lng: 80.4716 },
+  Trincomalee: { lat: 8.5874, lng: 81.2152 },
+  Anuradhapura: { lat: 8.3114, lng: 80.4037 },
+  Jaffna: { lat: 9.6615, lng: 80.0255 },
+};
+
+// Interest options - SYNCED with TripPlannerForm
 const INTEREST_OPTIONS = [
   { id: 'culture', label: 'Culture & Heritage', emoji: '🏛️' },
-  { id: 'nature', label: 'Nature & Wildlife', emoji: '🌿' },
   { id: 'adventure', label: 'Adventure', emoji: '🏔️' },
-  { id: 'food', label: 'Food & Cuisine', emoji: '🍜' },
-  { id: 'beaches', label: 'Beaches', emoji: '🏖️' },
-  { id: 'relaxation', label: 'Relaxation', emoji: '🧘' },
+  { id: 'beach', label: 'Beaches', emoji: '🏖️' },
+  { id: 'nature', label: 'Nature & Wildlife', emoji: '🌿' },
+  { id: 'food', label: 'Food & Cuisine', emoji: '🍛' },
   { id: 'photography', label: 'Photography', emoji: '📷' },
+  { id: 'wildlife', label: 'Wildlife', emoji: '🐘' },
   { id: 'history', label: 'History', emoji: '📜' },
+  { id: 'shopping', label: 'Shopping', emoji: '🛍️' },
+  { id: 'nightlife', label: 'Nightlife', emoji: '🌙' },
 ];
 
 // Helper function to format date as YYYY-MM-DD
@@ -44,74 +101,116 @@ const formatDate = (date) => {
   return date.toISOString().split('T')[0];
 };
 
-// Get default dates (starting tomorrow)
-const getDefaultDates = (durationDays) => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const endDate = new Date(tomorrow);
-  endDate.setDate(endDate.getDate() + durationDays - 1);
-
-  return {
-    startDate: formatDate(tomorrow),
-    endDate: formatDate(endDate),
-  };
-};
-
 const RecommendationsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Get cached params from recommendations store
-  const { params: cachedParams, isValid } = useRecommendationsStore();
+  // Get trip data from navigation state (from HomePage form)
+  const tripData = location.state?.tripData;
 
-  // Always start with defaults - cache is only for showing recommendations
-  // when navigating back to this page within the same session
-  const [destination, setDestination] = useState('Kandy');
-  const [interests, setInterests] = useState(['culture', 'nature', 'food']);
-  const [budget, setBudget] = useState(150000);
-  const [duration, setDuration] = useState(4);
-  const [groupSize, setGroupSize] = useState(2);
+  // Get cached params and recommendations from store
+  const {
+    params: cachedParams,
+    isValid,
+    hasStoredRecommendations,
+    recommendations: storedRecommendations,
+  } = useRecommendationsStore();
+
+  // Also grab raw recommendations object for map rendering
+  const { recommendations: aiRecommendations } = useRecommendationsStore();
+
+  // Initialize state - priority: tripData > cachedParams > defaults
+  const getInitialValue = (tripKey, cachedKey, defaultValue) => {
+    if (tripData?.[tripKey]) return tripData[tripKey];
+    if (cachedParams?.[cachedKey] && isValid()) return cachedParams[cachedKey];
+    return defaultValue;
+  };
+
+  const [destination, setDestination] = useState(() =>
+    getInitialValue('destination', 'destination', 'Kandy')
+  );
+  const [interests, setInterests] = useState(() =>
+    getInitialValue('interests', 'interests', ['culture', 'nature', 'food'])
+  );
+  const [budget, setBudget] = useState(() =>
+    getInitialValue('budget', 'budget', 150000)
+  );
+  const [duration, setDuration] = useState(() =>
+    getInitialValue('tripDuration', 'duration', 4)
+  );
+  const [groupSize, setGroupSize] = useState(() =>
+    getInitialValue('groupSize', 'groupSize', 2)
+  );
+  const [startDate, setStartDate] = useState(() =>
+    getInitialValue('startDate', 'startDate', '')
+  );
+  const [endDate, setEndDate] = useState(() =>
+    getInitialValue('endDate', 'endDate', '')
+  );
   const [showAddedToast, setShowAddedToast] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState(null);
+  const [showWeather, setShowWeather] = useState(true);
+  const [showMap, setShowMap] = useState(true); // Show map by default
+
+  // Apply trip data when it's available (from HomePage navigation) - override cached
+  useEffect(() => {
+    if (tripData) {
+      console.log('Received trip data from home:', tripData);
+      if (tripData.destination) setDestination(tripData.destination);
+      if (tripData.interests) setInterests(tripData.interests);
+      if (tripData.budget) setBudget(tripData.budget);
+      if (tripData.tripDuration) setDuration(tripData.tripDuration);
+      if (tripData.groupSize) setGroupSize(tripData.groupSize);
+      if (tripData.startDate) setStartDate(tripData.startDate);
+      if (tripData.endDate) setEndDate(tripData.endDate);
+    }
+  }, [tripData]);
 
   // Zustand store for itinerary
-  const {
-    savedItems,
-    addToSaved,
-    isSaved,
-    setTripDetails,
-    lastRecommendations,
-    setLastRecommendations,
-  } = useItineraryStore();
+  const { savedItems, addToSaved, isSaved, setTripDetails } =
+    useItineraryStore();
 
-  // Sync preferences when destination matches cached recommendations
-  useEffect(() => {
-    if (cachedParams && isValid() && cachedParams.destination === destination) {
-      // Update preferences to match cached params
-      if (cachedParams.duration) setDuration(cachedParams.duration);
-      if (cachedParams.groupSize) setGroupSize(cachedParams.groupSize);
-      if (cachedParams.budget) setBudget(cachedParams.budget);
-      if (cachedParams.interests) setInterests(cachedParams.interests);
-    }
-  }, [destination, cachedParams, isValid]);
+  // Get coordinates for current destination
+  const coords = DESTINATIONS[destination] || DESTINATIONS['Kandy'];
 
-  // Calculate dates based on duration
-  const { startDate, endDate } = getDefaultDates(duration);
+  // Filter attractions for current destination (use name/description since attractions don't have location field)
+  const destinationAttractions = sampleAttractions.filter(
+    (a) =>
+      a.name?.toLowerCase().includes(destination.toLowerCase()) ||
+      a.description?.toLowerCase().includes(destination.toLowerCase())
+  );
+
+  // Calculate dates based on duration or use provided dates
+  const calculatedStartDate =
+    startDate ||
+    (() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return formatDate(tomorrow);
+    })();
+
+  const calculatedEndDate =
+    endDate ||
+    (() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + duration);
+      return formatDate(tomorrow);
+    })();
 
   // Update trip details in store when preferences change
   useEffect(() => {
     setTripDetails({
       destination,
-      startDate,
-      endDate,
+      startDate: calculatedStartDate,
+      endDate: calculatedEndDate,
       duration,
       budget,
       groupSize,
     });
   }, [
     destination,
-    startDate,
-    endDate,
+    calculatedStartDate,
+    calculatedEndDate,
     duration,
     budget,
     groupSize,
@@ -177,10 +276,14 @@ const RecommendationsPage = () => {
             <span className="text-purple-200 font-medium">AI-Powered</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-            Travel Recommendations
+            Travel Recommendations for {destination}
           </h1>
           <p className="text-purple-200">
-            Get personalized suggestions powered by Google Gemini AI
+            {tripData
+              ? `Your ${duration}-day trip • ${groupSize} traveler${
+                  groupSize > 1 ? 's' : ''
+                } • LKR ${budget.toLocaleString()}`
+              : 'Get personalized suggestions powered by Google Gemini AI'}
           </p>
         </div>
       </div>
@@ -188,8 +291,8 @@ const RecommendationsPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Preferences Panel */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4">
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-6">
                 Trip Preferences
               </h2>
@@ -205,7 +308,7 @@ const RecommendationsPage = () => {
                   onChange={(e) => setDestination(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                 >
-                  {DESTINATIONS.map((dest) => (
+                  {Object.keys(DESTINATIONS).map((dest) => (
                     <option key={dest} value={dest}>
                       {dest}
                     </option>
@@ -297,7 +400,7 @@ const RecommendationsPage = () => {
                   <li>📅 {duration} days</li>
                   <li>👥 {groupSize} travelers</li>
                   <li>💰 LKR {budget.toLocaleString()}</li>
-                  <li>❤️ {interests.length} interests</li>
+                  <li>❤️ {interests.length} interests selected</li>
                 </ul>
               </div>
 
@@ -335,6 +438,66 @@ const RecommendationsPage = () => {
                 </div>
               )}
             </div>
+
+            {/* Weather Widget */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <button
+                onClick={() => setShowWeather(!showWeather)}
+                className="w-full flex items-center justify-between text-lg font-bold text-gray-900 mb-4"
+              >
+                <span className="flex items-center gap-2">
+                  <CloudIcon className="w-5 h-5 text-blue-500" />
+                  Weather in {destination}
+                </span>
+                <span className="text-gray-400">{showWeather ? '−' : '+'}</span>
+              </button>
+              {showWeather && (
+                <WeatherWidget
+                  latitude={coords.lat}
+                  longitude={coords.lng}
+                  destinationName={destination}
+                />
+              )}
+            </div>
+
+            {/* Map Toggle */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <button
+                onClick={() => setShowMap(!showMap)}
+                className="w-full flex items-center justify-between text-lg font-bold text-gray-900 mb-4"
+              >
+                <span className="flex items-center gap-2">
+                  <MapIcon className="w-5 h-5 text-green-500" />
+                  Explore {destination}
+                </span>
+                <span className="text-gray-400">{showMap ? '−' : '+'}</span>
+              </button>
+              {showMap && (
+                <div className="h-64 rounded-xl overflow-hidden">
+                  <AttractionMap
+                    attractions={getMapAttractions(
+                      aiRecommendations,
+                      destinationAttractions,
+                      sampleAttractions,
+                      coords,
+                      destination
+                    )}
+                    onSelectAttraction={(attraction) => {
+                      console.log('Selected:', attraction);
+                    }}
+                    onAddToItinerary={(attraction) => {
+                      handleAddToItinerary({
+                        name: attraction.name,
+                        description: attraction.description,
+                        location: attraction.location,
+                        category: attraction.category,
+                        type: attraction.type || 'attraction',
+                      });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Recommendations Panel */}
@@ -345,10 +508,10 @@ const RecommendationsPage = () => {
               budget={budget}
               duration={duration}
               groupSize={groupSize}
-              startDate={startDate}
-              endDate={endDate}
+              startDate={calculatedStartDate}
+              endDate={calculatedEndDate}
               onAddToItinerary={handleAddToItinerary}
-              autoFetch={false}
+              autoFetch={!!tripData}
               showFilters={true}
             />
           </div>

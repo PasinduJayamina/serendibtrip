@@ -224,6 +224,14 @@ const RecommendationPanel = ({
     thumbsDown(recommendation.name);
   };
 
+  // Auto-fetch recommendations when autoFetch is true and we have a destination
+  useEffect(() => {
+    if (autoFetch && destination && !recommendations && !loading) {
+      fetchRecommendations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFetch, destination]);
+
   // Filter type options
   const filterOptions = [
     { value: 'all', label: 'All', icon: Squares2X2Icon },
