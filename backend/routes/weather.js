@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const weatherCacheService = require('../services/weatherCacheService');
+const { auth } = require('../middleware/auth');
 
 /**
  * @route   GET /api/weather/:destination
@@ -100,9 +101,9 @@ router.post('/batch', async (req, res) => {
 /**
  * @route   POST /api/weather/update-batch
  * @desc    Force update weather for multiple destinations
- * @access  Public (consider adding auth for production)
+ * @access  Private (requires authentication)
  */
-router.post('/update-batch', async (req, res) => {
+router.post('/update-batch', auth, async (req, res) => {
   try {
     const { destinations } = req.body;
 
@@ -149,9 +150,9 @@ router.post('/update-batch', async (req, res) => {
 /**
  * @route   GET /api/weather/cache/stats
  * @desc    Get cache statistics
- * @access  Public (consider adding auth for production)
+ * @access  Private (requires authentication)
  */
-router.get('/cache/stats', async (req, res) => {
+router.get('/cache/stats', auth, async (req, res) => {
   try {
     const stats = await weatherCacheService.getStats();
 
@@ -171,9 +172,9 @@ router.get('/cache/stats', async (req, res) => {
 /**
  * @route   POST /api/weather/cache/cleanup
  * @desc    Manually cleanup expired cache entries
- * @access  Public (consider adding auth for production)
+ * @access  Private (requires authentication)
  */
-router.post('/cache/cleanup', async (req, res) => {
+router.post('/cache/cleanup', auth, async (req, res) => {
   try {
     const deletedCount = await weatherCacheService.cleanup();
 
@@ -194,9 +195,9 @@ router.post('/cache/cleanup', async (req, res) => {
 /**
  * @route   DELETE /api/weather/cache/clear
  * @desc    Clear all cache (admin only)
- * @access  Public (MUST add auth for production)
+ * @access  Private (requires authentication)
  */
-router.delete('/cache/clear', async (req, res) => {
+router.delete('/cache/clear', auth, async (req, res) => {
   try {
     const deletedCount = await weatherCacheService.clearAll();
 

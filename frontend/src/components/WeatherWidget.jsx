@@ -176,14 +176,11 @@ const WeatherError = ({ error, onRetry }) => (
  * Displays current weather and 5-day forecast for a destination
  *
  * @param {Object} props
- * @param {number} props.latitude - Location latitude
- * @param {number} props.longitude - Location longitude
  * @param {string} props.destinationName - Name of the destination
  */
-const WeatherWidget = ({ latitude, longitude, destinationName }) => {
-  const { weather, forecast, loading, error, refetch } = useWeather(
-    latitude,
-    longitude
+const WeatherWidget = ({ destinationName }) => {
+  const { weather, forecast, loading, error, refetch, fromCache } = useWeather(
+    destinationName
   );
 
   const outfitSuggestions = useMemo(

@@ -347,8 +347,6 @@ function HomePage() {
             </select>
           </div>
           <WeatherWidget
-            latitude={DESTINATION_COORDS[selectedDestination].lat}
-            longitude={DESTINATION_COORDS[selectedDestination].lng}
             destinationName={
               selectedDestination.charAt(0).toUpperCase() +
               selectedDestination.slice(1)
