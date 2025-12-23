@@ -21,6 +21,7 @@ import RegisterPage from './pages/RegisterPage';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
+import LanguageSwitcher from './components/LanguageSwitcher';
 import { format } from 'date-fns';
 import {
   Trash2,
@@ -145,6 +146,9 @@ const Navigation = () => {
                 </Link>
               </div>
             )}
+
+            {/* Language Switcher */}
+            <LanguageSwitcher />
           </div>
 
           {/* Mobile Menu Button */}
