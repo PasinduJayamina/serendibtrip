@@ -28,8 +28,14 @@ import { useState, useEffect, useCallback } from 'react';
 
 // OpenWeatherMap API base URL
 const API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
-const API_KEY =
-  import.meta.env.VITE_WEATHER_API_KEY || '6847c1477b9a4a03a72e431a0195d8a2';
+const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
+
+// Validate API key is configured
+if (!API_KEY) {
+  console.warn(
+    'Weather API key not configured. Set VITE_WEATHER_API_KEY in .env.local'
+  );
+}
 
 /**
  * Map OpenWeatherMap condition codes to simple conditions

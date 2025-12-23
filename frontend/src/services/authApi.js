@@ -64,7 +64,7 @@ export const refreshToken = async () => {
   if (!refreshToken) {
     throw new Error('No refresh token');
   }
-  const response = await api.post('/auth/refresh-token', { refreshToken });
+  const response = await api.post('/auth/refresh', { refreshToken });
   return response.data;
 };
 
