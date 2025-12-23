@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays, addDays } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import {
   MapPin,
   Calendar,
@@ -256,6 +257,7 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
 
 // Main TripPlannerForm Component
 const TripPlannerForm = ({ onSubmit }) => {
+  const { t } = useTranslation();
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -350,10 +352,10 @@ const TripPlannerForm = ({ onSubmit }) => {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-            Plan Your Sri Lanka Trip
+            {t('tripPlanner.title')}
           </h2>
           <p className="text-gray-500 mt-2">
-            Fill in the details below to create your personalized itinerary
+            {t('tripPlanner.subtitle')}
           </p>
         </div>
 
@@ -363,17 +365,17 @@ const TripPlannerForm = ({ onSubmit }) => {
             htmlFor="destination"
             className="block text-sm font-semibold text-gray-700"
           >
-            Destination <span className="text-red-500">*</span>
+            {t('tripPlanner.destination')} <span className="text-red-500">*</span>
           </label>
           <Controller
             name="destination"
             control={control}
             rules={{
-              required: 'Please select a destination',
+              required: t('tripPlanner.validation.destinationRequired'),
               validate: (value) =>
                 DESTINATIONS.some(
                   (d) => d.toLowerCase() === value.toLowerCase()
-                ) || 'Please select a valid destination from the list',
+                ) || t('tripPlanner.validation.destinationInvalid'),
             }}
             render={({ field }) => (
               <AutocompleteInput
@@ -383,7 +385,7 @@ const TripPlannerForm = ({ onSubmit }) => {
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 suggestions={DESTINATIONS}
-                placeholder="Where do you want to go?"
+                placeholder={t('tripPlanner.destinationPlaceholder')}
                 error={errors.destination}
               />
             )}
@@ -407,7 +409,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               htmlFor="startDate"
               className="block text-sm font-semibold text-gray-700"
             >
-              Start Date <span className="text-red-500">*</span>
+              {t('tripPlanner.startDate')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Calendar
@@ -419,10 +421,10 @@ const TripPlannerForm = ({ onSubmit }) => {
                 id="startDate"
                 min={today}
                 {...register('startDate', {
-                  required: 'Start date is required',
+                  required: t('tripPlanner.validation.startDateRequired'),
                   validate: (value) =>
                     new Date(value) >= new Date(today) ||
-                    'Start date cannot be in the past',
+                    t('tripPlanner.validation.startDatePast'),
                 })}
                 className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   errors.startDate
@@ -448,7 +450,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               htmlFor="endDate"
               className="block text-sm font-semibold text-gray-700"
             >
-              End Date <span className="text-red-500">*</span>
+              {t('tripPlanner.endDate')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Calendar
@@ -460,10 +462,10 @@ const TripPlannerForm = ({ onSubmit }) => {
                 id="endDate"
                 min={watchStartDate || today}
                 {...register('endDate', {
-                  required: 'End date is required',
+                  required: t('tripPlanner.validation.endDateRequired'),
                   validate: (value) =>
                     new Date(value) > new Date(watchStartDate) ||
-                    'End date must be after start date',
+                    t('tripPlanner.validation.endDateBeforeStart'),
                 })}
                 className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   errors.endDate
@@ -489,8 +491,8 @@ const TripPlannerForm = ({ onSubmit }) => {
           <div className="bg-[#208896]/5 border border-[#208896]/20 rounded-lg p-4 flex items-center justify-center gap-2">
             <Calendar className="w-5 h-5 text-[#208896]" />
             <span className="text-[#208896] font-medium">
-              Trip Duration: {tripDuration()}{' '}
-              {tripDuration() === 1 ? 'day' : 'days'}
+              {t('tripPlanner.tripDuration')}: {tripDuration()}{' '}
+              {tripDuration() === 1 ? t('tripPlanner.day') : t('tripPlanner.days')}
             </span>
           </div>
         )}
@@ -503,7 +505,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               htmlFor="budget"
               className="block text-sm font-semibold text-gray-700"
             >
-              Budget (LKR) <span className="text-red-500">*</span>
+              {t('tripPlanner.budgetLKR')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Wallet
@@ -517,14 +519,14 @@ const TripPlannerForm = ({ onSubmit }) => {
                 max={BUDGET_MAX}
                 step={1000}
                 {...register('budget', {
-                  required: 'Budget is required',
+                  required: t('tripPlanner.validation.budgetRequired'),
                   min: {
                     value: BUDGET_MIN,
-                    message: `Minimum budget is ${formatCurrency(BUDGET_MIN)}`,
+                    message: t('tripPlanner.validation.budgetMin', { amount: formatCurrency(BUDGET_MIN) }),
                   },
                   max: {
                     value: BUDGET_MAX,
-                    message: `Maximum budget is ${formatCurrency(BUDGET_MAX)}`,
+                    message: t('tripPlanner.validation.budgetMax', { amount: formatCurrency(BUDGET_MAX) }),
                   },
                   valueAsNumber: true,
                 })}
@@ -545,7 +547,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               </p>
             )}
             <p className="text-xs text-gray-500">
-              Range: {formatCurrency(BUDGET_MIN)} - {formatCurrency(BUDGET_MAX)}
+              {t('tripPlanner.budgetRange')}: {formatCurrency(BUDGET_MIN)} - {formatCurrency(BUDGET_MAX)}
             </p>
           </div>
 
@@ -555,7 +557,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               htmlFor="groupSize"
               className="block text-sm font-semibold text-gray-700"
             >
-              Group Size <span className="text-red-500">*</span>
+              {t('tripPlanner.groupSize')} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Users
@@ -565,7 +567,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               <select
                 id="groupSize"
                 {...register('groupSize', {
-                  required: 'Please select group size',
+                  required: t('tripPlanner.validation.groupSizeRequired'),
                   valueAsNumber: true,
                 })}
                 className={`w-full pl-10 pr-10 py-3 rounded-lg border appearance-none ${
@@ -576,7 +578,7 @@ const TripPlannerForm = ({ onSubmit }) => {
               >
                 {GROUP_SIZES.map((size) => (
                   <option key={size} value={size}>
-                    {size} {size === 1 ? 'Person' : 'People'}
+                    {size} {size === 1 ? t('tripPlanner.person') : t('tripPlanner.people')}
                   </option>
                 ))}
               </select>
@@ -602,7 +604,7 @@ const TripPlannerForm = ({ onSubmit }) => {
           <div className="bg-gradient-to-r from-[#208896]/5 to-[#208896]/10 border border-[#208896]/20 rounded-lg p-4 flex items-center justify-center gap-2">
             <Wallet className="w-5 h-5 text-[#208896]" />
             <span className="text-[#208896] font-medium">
-              Budget per person: {formatCurrency(budgetPerPerson())}
+              {t('tripPlanner.budgetPerPerson')}: {formatCurrency(budgetPerPerson())}
             </span>
           </div>
         )}
@@ -614,9 +616,9 @@ const TripPlannerForm = ({ onSubmit }) => {
             className="block text-sm font-semibold text-gray-700"
           >
             <Heart className="w-4 h-4 inline mr-1 text-[#208896]" />
-            Interests <span className="text-red-500">*</span>
+            {t('tripPlanner.interests')} <span className="text-red-500">*</span>
             <span className="font-normal text-gray-500 ml-2">
-              (Select at least one)
+              ({t('tripPlanner.selectAtLeastOne')})
             </span>
           </label>
           <Controller
@@ -625,7 +627,7 @@ const TripPlannerForm = ({ onSubmit }) => {
             rules={{
               validate: (value) =>
                 (value && value.length > 0) ||
-                'Please select at least one interest',
+                t('tripPlanner.validation.interestsRequired'),
             }}
             render={({ field }) => (
               <InterestsSelect
@@ -657,12 +659,12 @@ const TripPlannerForm = ({ onSubmit }) => {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating Your Trip...
+                {t('tripPlanner.creatingTrip')}
               </>
             ) : (
               <>
                 <MapPin className="w-5 h-5" />
-                Plan My Trip
+                {t('tripPlanner.planTrip')}
               </>
             )}
           </button>

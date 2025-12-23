@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Loader2, Save, X } from 'lucide-react';
 import { uploadProfilePicture } from '../../services/userApi';
 
 const ProfileForm = ({ user, onSave, isLoading }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     bio: user?.bio || '',
@@ -105,13 +107,13 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           onChange={handleImageChange}
           className="hidden"
         />
-        <p className="text-sm text-gray-500 mt-2">Click to change photo</p>
+        <p className="text-sm text-gray-500 mt-2">{t('profile.form.clickToChangePhoto')}</p>
       </div>
 
       {/* Full Name */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Full Name
+          {t('profile.form.fullName')}
         </label>
         <input
           type="text"
@@ -119,7 +121,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           value={formData.fullName}
           onChange={handleChange}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent transition-all"
-          placeholder="Enter your full name"
+          placeholder={t('profile.form.fullName')}
           required
         />
       </div>
@@ -127,7 +129,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
       {/* Email (Read-only) */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Email
+          {t('profile.form.email')}
         </label>
         <input
           type="email"
@@ -135,13 +137,13 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           disabled
           className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
         />
-        <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+        <p className="text-xs text-gray-400 mt-1">{t('profile.form.emailCannotBeChanged')}</p>
       </div>
 
       {/* Phone Number */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Phone Number
+          {t('profile.form.phoneNumber')}
         </label>
         <input
           type="tel"
@@ -149,14 +151,14 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           value={formData.phoneNumber}
           onChange={handleChange}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent transition-all"
-          placeholder="+94 XX XXX XXXX"
+          placeholder={t('profile.form.phonePlaceholder')}
         />
       </div>
 
       {/* Bio */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Bio
+          {t('profile.form.bio')}
         </label>
         <textarea
           name="bio"
@@ -165,7 +167,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           rows={4}
           maxLength={500}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent transition-all resize-none"
-          placeholder="Tell us about yourself and your travel preferences..."
+          placeholder={t('profile.form.bioPlaceholder')}
         />
         <p className="text-xs text-gray-400 text-right">
           {formData.bio.length}/500
@@ -180,7 +182,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
         >
           <X className="w-4 h-4" />
-          Reset
+          {t('profile.form.reset')}
         </button>
         <button
           type="submit"
@@ -192,7 +194,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           ) : (
             <Save className="w-4 h-4" />
           )}
-          Save Changes
+          {isLoading ? t('profile.form.saving') : t('profile.form.saveChanges')}
         </button>
       </div>
     </form>

@@ -22,6 +22,7 @@ import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
   Trash2,
@@ -44,6 +45,7 @@ import {
 
 // Navigation component
 const Navigation = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useUserStore();
@@ -53,15 +55,15 @@ const Navigation = () => {
 
   const handleLogout = () => {
     logout();
-    toast.success('Signed out successfully');
+    toast.success(t('nav.signOut'));
     navigate('/');
     setShowUserMenu(false);
   };
 
   const navLinks = [
-    { to: '/', label: 'Home', icon: Home },
-    { to: '/recommendations', label: 'AI Picks', icon: Sparkles },
-    { to: '/itinerary', label: 'My Itinerary', icon: RouteIcon },
+    { to: '/', label: t('nav.home'), icon: Home },
+    { to: '/recommendations', label: t('nav.aiPicks'), icon: Sparkles },
+    { to: '/itinerary', label: t('nav.myItinerary'), icon: RouteIcon },
   ];
 
   return (
@@ -71,7 +73,7 @@ const Navigation = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <span className="text-2xl font-bold text-[#208896]">
-              SerendibTrip
+              {t('common.appName')}
             </span>
           </Link>
 
@@ -117,7 +119,7 @@ const Navigation = () => {
                       className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50"
                     >
                       <User className="w-4 h-4" />
-                      My Profile
+                      {t('nav.profile')}
                     </Link>
                     <hr className="my-1 border-gray-100" />
                     <button
@@ -125,7 +127,7 @@ const Navigation = () => {
                       className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sign out
+                      {t('nav.signOut')}
                     </button>
                   </div>
                 )}
@@ -136,13 +138,13 @@ const Navigation = () => {
                   to="/login"
                   className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
                 >
-                  Sign in
+                  {t('nav.signIn')}
                 </Link>
                 <Link
                   to="/register"
                   className="px-4 py-2 bg-[#208896] text-white rounded-lg font-medium hover:bg-[#1a6d78] transition-colors"
                 >
-                  Get Started
+                  {t('nav.getStarted')}
                 </Link>
               </div>
             )}
@@ -245,6 +247,7 @@ const DESTINATION_COORDS = {
 
 // Home Page Component
 function HomePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const addTrip = useTripStore((state) => state.addTrip);
@@ -302,18 +305,17 @@ function HomePage() {
       <div className="bg-gradient-to-r from-[#208896] to-[#1a6d78] text-white py-12 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Discover Sri Lanka
+            {t('home.heroTitle')}
           </h1>
           <p className="text-lg text-white/80 mb-6 max-w-2xl mx-auto">
-            Plan your perfect trip with AI-powered recommendations, real-time
-            weather, and personalized itineraries
+            {t('home.heroSubtitle')}
           </p>
           {!isAuthenticated && (
             <Link
               to="/register"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#208896] rounded-lg font-medium hover:bg-gray-100 transition-all shadow-lg"
             >
-              Start Planning Free
+              {t('home.startPlanningFree')}
             </Link>
           )}
         </div>
@@ -323,10 +325,10 @@ function HomePage() {
         {/* Trip Planner Form */}
         <div className="bg-white rounded-2xl shadow-lg p-6 -mt-8 relative z-10">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Plan Your Trip
+            {t('home.planYourTrip')}
           </h2>
           <p className="text-gray-500 mb-6">
-            Fill in the details to get personalized recommendations
+            {t('home.fillDetails')}
           </p>
           <TripPlannerForm onSubmit={handleSubmit} />
         </div>
@@ -336,7 +338,7 @@ function HomePage() {
           <div className="flex items-center gap-4 mb-4">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               <CloudSun className="w-6 h-6 text-[#208896]" />
-              Destination Weather
+              {t('home.destinationWeather')}
             </h2>
             <select
               value={selectedDestination}
@@ -362,7 +364,7 @@ function HomePage() {
         <div className="mt-8">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
             <Map className="w-6 h-6 text-[#208896]" />
-            Explore Attractions
+            {t('home.exploreAttractions')}
           </h2>
           <AttractionMap
             attractions={sampleAttractions}
@@ -379,7 +381,7 @@ function HomePage() {
         {sortedTrips.length > 0 && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              Saved Trips ({sortedTrips.length})
+              {t('home.savedTrips')} ({sortedTrips.length})
             </h2>
             <div className="grid gap-4">
               {sortedTrips.map((trip) => (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
   Mail,
   Lock,
@@ -16,6 +17,7 @@ import { useUserStore } from '../store/userStore';
 import { useToast } from '../components/ui/Toast';
 
 const RegisterPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -49,10 +51,10 @@ const RegisterPage = () => {
   const onSubmit = async (data) => {
     try {
       await registerUser(data.email, data.password, data.fullName);
-      toast.success('Account created successfully!');
+      toast.success(t('auth.accountCreated'));
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.message || t('auth.registrationFailed'));
     }
   };
 
@@ -64,7 +66,7 @@ const RegisterPage = () => {
           <Link to="/" className="inline-block">
             <h1 className="text-3xl font-bold text-[#208896]">SerendibTrip</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Your Sri Lanka Travel Planner
+              {t('common.tagline')}
             </p>
           </Link>
         </div>
@@ -72,8 +74,8 @@ const RegisterPage = () => {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Create account</h2>
-            <p className="text-gray-500 mt-1">Start planning your dream trip</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('auth.createAccountTitle')}</h2>
+            <p className="text-gray-500 mt-1">{t('auth.startPlanning')}</p>
           </div>
 
           {/* Error Alert */}
@@ -88,23 +90,23 @@ const RegisterPage = () => {
             {/* Full Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Full name
+                {t('auth.fullName')}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   {...register('fullName', {
-                    required: 'Full name is required',
+                    required: t('auth.validation.fullNameRequired'),
                     minLength: {
                       value: 2,
-                      message: 'Name must be at least 2 characters',
+                      message: t('auth.validation.fullNameMinLength'),
                     },
                   })}
                   className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.fullName ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="John Doe"
+                  placeholder={t('auth.fullNamePlaceholder')}
                 />
               </div>
               {errors.fullName && (
@@ -117,23 +119,23 @@ const RegisterPage = () => {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+                {t('auth.emailAddress')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   {...register('email', {
-                    required: 'Email is required',
+                    required: t('auth.validation.emailRequired'),
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Please enter a valid email',
+                      message: t('auth.validation.emailInvalid'),
                     },
                   })}
                   className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="you@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                 />
               </div>
               {errors.email && (
@@ -146,28 +148,27 @@ const RegisterPage = () => {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password', {
-                    required: 'Password is required',
+                    required: t('auth.validation.passwordRequired'),
                     minLength: {
                       value: 8,
-                      message: 'Password must be at least 8 characters',
+                      message: t('auth.validation.passwordMinLength'),
                     },
                     pattern: {
                       value: /^(?=.*[A-Z])(?=.*[0-9])/,
-                      message:
-                        'Password must contain uppercase letter and number',
+                      message: t('auth.validation.passwordPattern'),
                     },
                   })}
                   className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.password ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Create a password"
+                  placeholder={t('auth.createPasswordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -200,7 +201,7 @@ const RegisterPage = () => {
                           : 'text-gray-500'
                       }
                     >
-                      At least 8 characters
+                      {t('auth.passwordRequirements.minLength')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
@@ -218,7 +219,7 @@ const RegisterPage = () => {
                           : 'text-gray-500'
                       }
                     >
-                      One uppercase letter
+                      {t('auth.passwordRequirements.uppercase')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
@@ -236,7 +237,7 @@ const RegisterPage = () => {
                           : 'text-gray-500'
                       }
                     >
-                      One number
+                      {t('auth.passwordRequirements.number')}
                     </span>
                   </div>
                 </div>
@@ -246,23 +247,23 @@ const RegisterPage = () => {
             {/* Confirm Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Confirm password
+                {t('auth.confirmPassword')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...register('confirmPassword', {
-                    required: 'Please confirm your password',
+                    required: t('auth.validation.confirmPasswordRequired'),
                     validate: (value) =>
-                      value === password || 'Passwords do not match',
+                      value === password || t('auth.validation.passwordsDoNotMatch'),
                   })}
                   className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.confirmPassword
                       ? 'border-red-300'
                       : 'border-gray-300'
                   }`}
-                  placeholder="Confirm your password"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -292,11 +293,11 @@ const RegisterPage = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating account...
+                  {t('auth.creatingAccount')}
                 </>
               ) : (
                 <>
-                  Create account
+                  {t('auth.createAccount')}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -309,26 +310,25 @@ const RegisterPage = () => {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">or</span>
+              <span className="px-4 bg-white text-gray-500">{t('auth.or')}</span>
             </div>
           </div>
 
           {/* Sign In Link */}
           <p className="text-center text-gray-600">
-            Already have an account?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <Link
               to="/login"
               className="text-[#208896] font-medium hover:underline"
             >
-              Sign in
+              {t('auth.signIn')}
             </Link>
           </p>
         </div>
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-400 mt-6">
-          By creating an account, you agree to our Terms of Service and Privacy
-          Policy
+          {t('auth.registerTermsAgreement')}
         </p>
       </div>
     </div>
