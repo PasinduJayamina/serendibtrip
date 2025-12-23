@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RecommendationPanel } from '../components/recommendations';
 import WeatherWidget from '../components/WeatherWidget';
 import AttractionMap from '../components/AttractionMap';
@@ -102,6 +103,7 @@ const formatDate = (date) => {
 };
 
 const RecommendationsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -256,12 +258,12 @@ const RecommendationsPage = () => {
         <div className="fixed top-20 right-4 z-50 animate-slide-in">
           <div className="bg-teal-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <CheckCircleIcon className="w-5 h-5" />
-            <span className="font-medium">"{lastAddedItem}" saved!</span>
+            <span className="font-medium">"{lastAddedItem}" {t('recommendations.added')}</span>
             <button
               onClick={handleViewItinerary}
               className="ml-2 flex items-center gap-1 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-md text-sm transition-colors"
             >
-              View Itinerary
+              {t('recommendations.viewItinerary')}
               <ArrowRightIcon className="w-4 h-4" />
             </button>
           </div>
@@ -273,17 +275,15 @@ const RecommendationsPage = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-2">
             <SparklesIcon className="w-8 h-8" />
-            <span className="text-purple-200 font-medium">AI-Powered</span>
+            <span className="text-purple-200 font-medium">{t('recommendations.aiPowered')}</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-            Travel Recommendations for {destination}
+            {t('recommendations.title')} - {destination}
           </h1>
           <p className="text-purple-200">
             {tripData
-              ? `Your ${duration}-day trip • ${groupSize} traveler${
-                  groupSize > 1 ? 's' : ''
-                } • LKR ${budget.toLocaleString()}`
-              : 'Get personalized suggestions powered by Google Gemini AI'}
+              ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')} • LKR ${budget.toLocaleString()}`
+              : t('home.getAiRecommendations')}
           </p>
         </div>
       </div>
@@ -294,14 +294,14 @@ const RecommendationsPage = () => {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-6">
-                Trip Preferences
+                {t('recommendations.tripPreferences')}
               </h2>
 
               {/* Destination */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                   <MapPinIcon className="w-4 h-4 text-purple-500" />
-                  Destination
+                  {t('tripPlanner.destination')}
                 </label>
                 <select
                   value={destination}
@@ -320,7 +320,7 @@ const RecommendationsPage = () => {
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                   <CalendarDaysIcon className="w-4 h-4 text-purple-500" />
-                  Duration (days)
+                  {t('tripPlanner.duration')} ({t('tripPlanner.days')})
                 </label>
                 <input
                   type="number"
@@ -336,7 +336,7 @@ const RecommendationsPage = () => {
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                   <UserGroupIcon className="w-4 h-4 text-purple-500" />
-                  Travelers
+                  {t('tripPlanner.travelers')}
                 </label>
                 <input
                   type="number"
@@ -352,7 +352,7 @@ const RecommendationsPage = () => {
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                   <CurrencyDollarIcon className="w-4 h-4 text-purple-500" />
-                  Budget (LKR)
+                  {t('tripPlanner.budgetLKR')}
                 </label>
                 <input
                   type="number"
@@ -370,7 +370,7 @@ const RecommendationsPage = () => {
               {/* Interests */}
               <div className="mb-6">
                 <label className="text-sm font-medium text-gray-700 mb-3 block">
-                  Interests
+                  {t('tripPlanner.interests')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {INTEREST_OPTIONS.map((interest) => (
@@ -384,7 +384,7 @@ const RecommendationsPage = () => {
                       }`}
                     >
                       <span>{interest.emoji}</span>
-                      {interest.label}
+                      {t(`interests.${interest.id}`)}
                     </button>
                   ))}
                 </div>
@@ -393,14 +393,14 @@ const RecommendationsPage = () => {
               {/* Summary */}
               <div className="p-4 bg-purple-50 rounded-xl">
                 <h3 className="text-sm font-semibold text-purple-800 mb-2">
-                  Trip Summary
+                  {t('tripPlanner.tripSummary')}
                 </h3>
                 <ul className="text-sm text-purple-700 space-y-1">
                   <li>📍 {destination}</li>
-                  <li>📅 {duration} days</li>
-                  <li>👥 {groupSize} travelers</li>
+                  <li>📅 {duration} {t('tripPlanner.days')}</li>
+                  <li>👥 {groupSize} {t('tripPlanner.travelers')}</li>
                   <li>💰 LKR {budget.toLocaleString()}</li>
-                  <li>❤️ {interests.length} interests selected</li>
+                  <li>❤️ {interests.length} {t('tripPlanner.interestsSelected')}</li>
                 </ul>
               </div>
 
@@ -409,13 +409,13 @@ const RecommendationsPage = () => {
                 <div className="mt-6 p-4 bg-teal-50 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold text-teal-800">
-                      Saved to Itinerary ({savedItems.length})
+                      {t('recommendations.savedToItinerary')} ({savedItems.length})
                     </h3>
                     <button
                       onClick={handleViewItinerary}
                       className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
                     >
-                      View All
+                      {t('common.viewAll')}
                       <ArrowRightIcon className="w-3 h-3" />
                     </button>
                   </div>
@@ -447,7 +447,7 @@ const RecommendationsPage = () => {
               >
                 <span className="flex items-center gap-2">
                   <CloudIcon className="w-5 h-5 text-blue-500" />
-                  Weather in {destination}
+                  {t('weather.title')} - {destination}
                 </span>
                 <span className="text-gray-400">{showWeather ? '−' : '+'}</span>
               </button>

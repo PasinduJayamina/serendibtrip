@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   MapPinIcon,
   CalendarDaysIcon,
@@ -22,6 +23,7 @@ import { formatCurrency, CategoryBadge } from '../utils/categoryIcons';
 import { getAllCategories } from '../services/budgetService';
 
 const MyItineraryPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(true);
@@ -84,9 +86,9 @@ const MyItineraryPage = () => {
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
           <div className="max-w-4xl mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-2">My Itinerary</h1>
+            <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
             <p className="text-teal-200">
-              Build your personalized Sri Lanka trip
+              {t('itinerary.buildTrip')}
             </p>
           </div>
         </div>
@@ -98,18 +100,17 @@ const MyItineraryPage = () => {
               <CalendarDaysIcon className="w-10 h-10 text-gray-400" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              No Items Saved Yet
+              {t('itinerary.empty')}
             </h2>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
-              Start exploring AI-powered recommendations and save your favorite
-              attractions and restaurants to build your perfect itinerary.
+              {t('itinerary.emptyDescription')}
             </p>
             <Link
               to="/recommendations"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               <SparklesIcon className="w-5 h-5" />
-              Get AI Recommendations
+              {t('itinerary.browseRecommendations')}
               <ArrowRightIcon className="w-5 h-5" />
             </Link>
           </div>
@@ -126,24 +127,23 @@ const MyItineraryPage = () => {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <ExclamationTriangleIcon className="w-8 h-8" />
-              <h3 className="text-lg font-bold">Clear All Items?</h3>
+              <h3 className="text-lg font-bold">{t('itinerary.clearAllConfirm')}</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              This will remove all {savedItems.length} saved items from your
-              itinerary. This action cannot be undone.
+              {t('itinerary.clearAllWarning', { count: savedItems.length })}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowClearConfirm(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleClearAll}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
-                Clear All
+                {t('itinerary.clearAll')}
               </button>
             </div>
           </div>
@@ -155,9 +155,9 @@ const MyItineraryPage = () => {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">My Itinerary</h1>
+              <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
               <p className="text-teal-200">
-                {savedItems.length} items saved for your trip
+                {t('itinerary.itemsSaved', { count: savedItems.length })}
               </p>
             </div>
             <Link
@@ -165,7 +165,7 @@ const MyItineraryPage = () => {
               className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
             >
               <PlusIcon className="w-5 h-5" />
-              Add More
+              {t('itinerary.addMore')}
             </Link>
           </div>
         </div>
@@ -178,25 +178,25 @@ const MyItineraryPage = () => {
             <div className="text-2xl font-bold text-teal-600">
               {savedItems.length}
             </div>
-            <div className="text-sm text-gray-500">Total Items</div>
+            <div className="text-sm text-gray-500">{t('itinerary.totalItems')}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="text-2xl font-bold text-purple-600">
               {attractions.length}
             </div>
-            <div className="text-sm text-gray-500">Attractions</div>
+            <div className="text-sm text-gray-500">{t('itinerary.attractions')}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="text-2xl font-bold text-orange-600">
               {restaurants.length}
             </div>
-            <div className="text-sm text-gray-500">Restaurants</div>
+            <div className="text-sm text-gray-500">{t('itinerary.restaurants')}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="text-2xl font-bold text-green-600">
               {formatCurrency(estimatedBudget)}
             </div>
-            <div className="text-sm text-gray-500">Est. Cost</div>
+            <div className="text-sm text-gray-500">{t('itinerary.estimatedCost')}</div>
           </div>
         </div>
 
@@ -210,7 +210,7 @@ const MyItineraryPage = () => {
               <div className="flex items-center gap-2">
                 <ChartBarIcon className="w-5 h-5 text-teal-600" />
                 <h3 className="font-semibold text-gray-900">
-                  Budget & Expense Tracking
+                  {t('itinerary.budgetTracking')}
                 </h3>
               </div>
               <span className="text-gray-400">
@@ -224,7 +224,7 @@ const MyItineraryPage = () => {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">
-                      Budget Used
+                      {t('itinerary.budgetUsed')}
                     </span>
                     <span className="text-sm text-gray-600">
                       {formatCurrency(expenseSummary.totalSpent)} /{' '}
@@ -249,9 +249,9 @@ const MyItineraryPage = () => {
                     />
                   </div>
                   <div className="flex justify-between mt-2 text-xs text-gray-500">
-                    <span>{expenseSummary.percentageUsed}% used</span>
+                    <span>{t('itinerary.percentUsed', { percent: expenseSummary.percentageUsed })}</span>
                     <span>
-                      {formatCurrency(expenseSummary.remaining)} remaining
+                      {t('itinerary.remaining', { amount: formatCurrency(expenseSummary.remaining) })}
                     </span>
                   </div>
                 </div>
@@ -309,7 +309,7 @@ const MyItineraryPage = () => {
                     <div className="flex items-center gap-2">
                       <BanknotesIcon className="w-4 h-4 text-teal-600" />
                       <span className="text-teal-800">
-                        Daily budget per person:
+                        {t('itinerary.dailyBudget')}:
                       </span>
                     </div>
                     <span className="font-semibold text-teal-900">
@@ -333,7 +333,7 @@ const MyItineraryPage = () => {
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <MapPinIcon className="w-6 h-6 text-teal-600" />
-              Attractions & Activities ({attractions.length})
+              {t('itinerary.attractionsActivities')} ({attractions.length})
             </h2>
             <div className="space-y-3">
               {attractions.map((item) => (
@@ -381,7 +381,7 @@ const MyItineraryPage = () => {
                     <button
                       onClick={() => removeFromSaved(item.name)}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Remove from itinerary"
+                      title={t('itinerary.removeFromItinerary')}
                     >
                       <TrashIcon className="w-5 h-5" />
                     </button>
@@ -396,7 +396,7 @@ const MyItineraryPage = () => {
         {restaurants.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              🍽️ Restaurants ({restaurants.length})
+              🍽️ {t('itinerary.restaurants')} ({restaurants.length})
             </h2>
             <div className="space-y-3">
               {restaurants.map((item) => (
@@ -418,7 +418,7 @@ const MyItineraryPage = () => {
                       </div>
                       {item.specialty && (
                         <p className="text-sm text-gray-500 mb-2">
-                          <span className="font-medium">Specialty:</span>{' '}
+                          <span className="font-medium">{t('itinerary.specialty')}:</span>{' '}
                           {item.specialty}
                         </p>
                       )}
@@ -458,23 +458,21 @@ const MyItineraryPage = () => {
             className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
           >
             <SparklesIcon className="w-5 h-5" />
-            Add More Recommendations
+            {t('itinerary.addMoreRecommendations')}
           </Link>
           <button
             onClick={() => setShowClearConfirm(true)}
             className="flex items-center justify-center gap-2 border border-red-300 text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition-colors"
           >
             <TrashIcon className="w-5 h-5" />
-            Clear All
+            {t('itinerary.clearAll')}
           </button>
         </div>
 
         {/* Note about ratings */}
         <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <p className="text-sm text-amber-800">
-            <strong>Note:</strong> Ratings shown are AI-estimated and may differ
-            from actual Google Maps ratings. Click on location names to verify
-            on Google Maps.
+            <strong>Note:</strong> {t('itinerary.ratingNote')}
           </p>
         </div>
       </div>

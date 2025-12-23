@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   User,
   Settings,
@@ -21,19 +22,20 @@ import {
   SettingsPanel,
 } from '../components/profile';
 
-// Tab configuration
-const TABS = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'preferences', label: 'Preferences', icon: Sliders },
-  { id: 'favorites', label: 'Favorites', icon: Heart },
-  { id: 'trips', label: 'My Trips', icon: Calendar },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
 const UserProfilePage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('profile');
+
+  // Tab configuration with translation keys
+  const TABS = [
+    { id: 'profile', labelKey: 'profile.tabs.profile', icon: User },
+    { id: 'preferences', labelKey: 'profile.tabs.preferences', icon: Sliders },
+    { id: 'favorites', labelKey: 'profile.tabs.favorites', icon: Heart },
+    { id: 'trips', labelKey: 'profile.tabs.myTrips', icon: Calendar },
+    { id: 'settings', labelKey: 'profile.tabs.settings', icon: Settings },
+  ];
 
   const {
     user,
@@ -80,9 +82,9 @@ const UserProfilePage = () => {
   const handleProfileSave = async (profileData) => {
     try {
       await updateProfile(profileData);
-      toast.success('Profile updated successfully!');
+      toast.success(t('profile.messages.profileUpdated'));
     } catch (err) {
-      toast.error(err.message || 'Failed to update profile');
+      toast.error(err.message || t('profile.messages.updateFailed'));
     }
   };
 
@@ -90,9 +92,9 @@ const UserProfilePage = () => {
   const handlePreferencesSave = async (preferences) => {
     try {
       await updatePreferences(preferences);
-      toast.success('Preferences saved successfully!');
+      toast.success(t('profile.messages.preferenceSaved'));
     } catch (err) {
-      toast.error(err.message || 'Failed to save preferences');
+      toast.error(err.message || t('profile.messages.preferenceFailed'));
     }
   };
 
@@ -100,9 +102,9 @@ const UserProfilePage = () => {
   const handleRemoveFavorite = async (attractionId) => {
     try {
       await removeFavorite(attractionId);
-      toast.success('Removed from favorites');
+      toast.success(t('profile.messages.removedFromFavorites'));
     } catch (err) {
-      toast.error('Failed to remove favorite');
+      toast.error(t('profile.messages.failedToRemoveFavorite'));
     }
   };
 
@@ -110,9 +112,9 @@ const UserProfilePage = () => {
   const handleDeleteTrip = async (tripId) => {
     try {
       await deleteTrip(tripId);
-      toast.success('Trip deleted');
+      toast.success(t('profile.messages.tripDeleted'));
     } catch (err) {
-      toast.error('Failed to delete trip');
+      toast.error(t('profile.messages.tripDeleteFailed'));
     }
   };
 
@@ -129,7 +131,7 @@ const UserProfilePage = () => {
   // Handle logout
   const handleLogout = () => {
     logout();
-    toast.success('Signed out successfully');
+    toast.success(t('profile.messages.signedOut'));
     navigate('/');
   };
 
@@ -142,22 +144,21 @@ const UserProfilePage = () => {
             <User className="w-10 h-10 text-[#208896]" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Sign in to view your profile
+            {t('profile.signInPrompt')}
           </h2>
           <p className="text-gray-600 mb-6">
-            Create an account or sign in to save your trips, favorite
-            attractions, and personalize your travel experience.
+            {t('profile.signInDescription')}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => navigate('/')}
               className="px-6 py-3 bg-[#208896] text-white rounded-lg hover:bg-[#1a6d78] transition-colors font-medium"
             >
-              Go to Home
+              {t('profile.goToHome')}
             </button>
           </div>
           <p className="text-sm text-gray-500 mt-6">
-            Sign in feature coming soon!
+            {t('profile.comingSoon')}
           </p>
         </div>
       </div>
@@ -170,7 +171,7 @@ const UserProfilePage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-[#208896] mx-auto" />
-          <p className="mt-4 text-gray-600">Loading your profile...</p>
+          <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
         </div>
       </div>
     );
@@ -183,7 +184,7 @@ const UserProfilePage = () => {
         <div className="text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">
-            Unable to load profile
+            {t('profile.unableToLoad')}
           </h2>
           <p className="mt-2 text-gray-600">{error}</p>
           <button
@@ -193,7 +194,7 @@ const UserProfilePage = () => {
             }}
             className="mt-4 px-4 py-2 bg-[#208896] text-white rounded-lg hover:bg-[#1a6d78] transition-colors"
           >
-            Try Again
+            {t('common.tryAgain')}
           </button>
         </div>
       </div>
@@ -260,7 +261,7 @@ const UserProfilePage = () => {
             className="flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back
+            {t('profile.back')}
           </button>
 
           {/* Profile Header */}
@@ -293,15 +294,15 @@ const UserProfilePage = () => {
           <div className="flex gap-6 mt-6">
             <div className="text-center">
               <p className="text-2xl font-bold">{trips?.length || 0}</p>
-              <p className="text-sm text-white/80">Trips</p>
+              <p className="text-sm text-white/80">{t('profile.stats.trips')}</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{favorites?.length || 0}</p>
-              <p className="text-sm text-white/80">Favorites</p>
+              <p className="text-sm text-white/80">{t('profile.stats.favorites')}</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{user?.reviews?.length || 0}</p>
-              <p className="text-sm text-white/80">Reviews</p>
+              <p className="text-sm text-white/80">{t('profile.stats.reviews')}</p>
             </div>
           </div>
         </div>
@@ -322,7 +323,7 @@ const UserProfilePage = () => {
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             ))}
           </div>

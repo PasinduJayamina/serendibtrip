@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Sun,
   Cloud,
@@ -43,9 +44,10 @@ const WeatherIcon = ({ condition, className = 'w-8 h-8' }) => {
 /**
  * Get outfit suggestion based on weather conditions
  * @param {Object} weather - Current weather data
+ * @param {Function} t - Translation function
  * @returns {Array} Array of suggestion objects
  */
-const getOutfitSuggestions = (weather) => {
+const getOutfitSuggestions = (weather, t) => {
   if (!weather) return [];
 
   const suggestions = [];
@@ -55,30 +57,30 @@ const getOutfitSuggestions = (weather) => {
   if (temp >= 30) {
     suggestions.push({
       icon: Shirt,
-      text: 'Light cotton clothes recommended',
+      text: t('weather.outfit.lightCotton'),
       color: 'text-orange-500',
     });
     suggestions.push({
       icon: Glasses,
-      text: 'Sunglasses & sunscreen essential',
+      text: t('weather.outfit.sunglasses'),
       color: 'text-yellow-500',
     });
   } else if (temp >= 25) {
     suggestions.push({
       icon: Shirt,
-      text: 'Comfortable light clothing ideal',
+      text: t('weather.outfit.comfortable'),
       color: 'text-green-500',
     });
   } else if (temp >= 20) {
     suggestions.push({
       icon: Shirt,
-      text: 'Light layers recommended',
+      text: t('weather.outfit.lightLayers'),
       color: 'text-blue-500',
     });
   } else {
     suggestions.push({
       icon: Shirt,
-      text: 'Bring a light jacket',
+      text: t('weather.outfit.lightJacket'),
       color: 'text-indigo-500',
     });
   }
@@ -91,7 +93,7 @@ const getOutfitSuggestions = (weather) => {
   ) {
     suggestions.push({
       icon: Umbrella,
-      text: 'Umbrella essential',
+      text: t('weather.outfit.umbrella'),
       color: 'text-blue-600',
     });
   }
@@ -100,7 +102,7 @@ const getOutfitSuggestions = (weather) => {
   if (humidity > 80) {
     suggestions.push({
       icon: Droplets,
-      text: 'High humidity - stay hydrated',
+      text: t('weather.outfit.stayHydrated'),
       color: 'text-cyan-500',
     });
   }
@@ -154,11 +156,11 @@ const WeatherSkeleton = () => (
 /**
  * Error state component
  */
-const WeatherError = ({ error, onRetry }) => (
+const WeatherError = ({ error, onRetry, t }) => (
   <div className="text-center py-8">
     <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
     <h3 className="text-lg font-semibold text-gray-800 mb-2">
-      Unable to load weather
+      {t('weather.unableToLoad')}
     </h3>
     <p className="text-gray-500 text-sm mb-4">{error}</p>
     <button
@@ -166,7 +168,7 @@ const WeatherError = ({ error, onRetry }) => (
       className="inline-flex items-center gap-2 px-4 py-2 bg-[#208896] text-white rounded-lg hover:bg-[#1a6f7a] transition-colors"
     >
       <RefreshCw className="w-4 h-4" />
-      Try Again
+      {t('weather.tryAgain')}
     </button>
   </div>
 );
@@ -179,20 +181,21 @@ const WeatherError = ({ error, onRetry }) => (
  * @param {string} props.destinationName - Name of the destination
  */
 const WeatherWidget = ({ destinationName }) => {
+  const { t } = useTranslation();
   const { weather, forecast, loading, error, refetch, fromCache } = useWeather(
     destinationName
   );
 
   const outfitSuggestions = useMemo(
-    () => getOutfitSuggestions(weather),
-    [weather]
+    () => getOutfitSuggestions(weather, t),
+    [weather, t]
   );
 
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Weather</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t('weather.title')}</h2>
         </div>
         <WeatherSkeleton />
       </div>
@@ -202,8 +205,8 @@ const WeatherWidget = ({ destinationName }) => {
   if (error) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Weather</h2>
-        <WeatherError error={error} onRetry={refetch} />
+        <h2 className="text-xl font-bold text-gray-800 mb-4">{t('weather.title')}</h2>
+        <WeatherError error={error} onRetry={refetch} t={t} />
       </div>
     );
   }
@@ -213,7 +216,7 @@ const WeatherWidget = ({ destinationName }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-bold text-gray-800">Weather</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t('weather.title')}</h2>
           <div className="flex items-center gap-1 text-gray-500 text-sm">
             <MapPin className="w-4 h-4" />
             <span>{destinationName}</span>
@@ -222,7 +225,7 @@ const WeatherWidget = ({ destinationName }) => {
         <button
           onClick={refetch}
           className="p-2 text-gray-500 hover:text-[#208896] hover:bg-[#208896]/10 rounded-lg transition-colors"
-          title="Refresh weather"
+          title={t('weather.refreshWeather')}
         >
           <RefreshCw className="w-5 h-5" />
         </button>
@@ -248,7 +251,7 @@ const WeatherWidget = ({ destinationName }) => {
         <div className="flex sm:flex-col gap-4 sm:gap-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
             <Thermometer className="w-4 h-4 text-orange-400" />
-            <span>Feels like {weather.feelsLike}°C</span>
+            <span>{t('weather.feelsLike')} {weather.feelsLike}°C</span>
           </div>
         </div>
       </div>
@@ -257,19 +260,19 @@ const WeatherWidget = ({ destinationName }) => {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 text-center">
           <Droplets className="w-5 h-5 text-blue-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 mb-1">Humidity</p>
+          <p className="text-xs text-gray-500 mb-1">{t('weather.humidity')}</p>
           <p className="text-lg font-bold text-gray-800">{weather.humidity}%</p>
         </div>
         <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 rounded-xl p-4 text-center">
           <Wind className="w-5 h-5 text-teal-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 mb-1">Wind</p>
+          <p className="text-xs text-gray-500 mb-1">{t('weather.wind')}</p>
           <p className="text-lg font-bold text-gray-800">
             {weather.windSpeed} km/h
           </p>
         </div>
         <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl p-4 text-center">
           <Thermometer className="w-5 h-5 text-orange-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-500 mb-1">Feels Like</p>
+          <p className="text-xs text-gray-500 mb-1">{t('weather.feelsLike')}</p>
           <p className="text-lg font-bold text-gray-800">
             {weather.feelsLike}°C
           </p>
@@ -279,7 +282,7 @@ const WeatherWidget = ({ destinationName }) => {
       {/* 5-Day Forecast */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          5-Day Forecast
+          {t('weather.forecast')}
         </h3>
         <div className="grid grid-cols-5 gap-2">
           {forecast.map((day, index) => (
@@ -292,7 +295,7 @@ const WeatherWidget = ({ destinationName }) => {
               }`}
             >
               <p className="text-xs font-medium text-gray-500 mb-2">
-                {index === 0 ? 'Today' : format(parseISO(day.date), 'EEE')}
+                {index === 0 ? t('weather.today') : format(parseISO(day.date), 'EEE')}
               </p>
               <WeatherIcon
                 condition={day.condition}
@@ -312,7 +315,7 @@ const WeatherWidget = ({ destinationName }) => {
         <div className="bg-gradient-to-r from-[#208896]/5 to-[#208896]/10 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <Shirt className="w-4 h-4 text-[#208896]" />
-            What to Wear
+            {t('weather.outfit.title')}
           </h3>
           <div className="space-y-2">
             {outfitSuggestions.map((suggestion, index) => {

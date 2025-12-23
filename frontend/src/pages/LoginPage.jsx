@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
   Mail,
   Lock,
@@ -15,6 +16,7 @@ import { useToast } from '../components/ui/Toast';
 import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -40,10 +42,10 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       await login(data.email, data.password);
-      toast.success('Welcome back!');
+      toast.success(t('auth.welcomeBack'));
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || t('auth.loginFailed'));
     }
   };
 
@@ -53,9 +55,9 @@ const LoginPage = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-[#208896]">SerendibTrip</h1>
+            <h1 className="text-3xl font-bold text-[#208896]">{t('common.appName')}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Your Sri Lanka Travel Planner
+              {t('common.tagline')}
             </p>
           </Link>
         </div>
@@ -63,9 +65,9 @@ const LoginPage = () => {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('auth.welcomeBack')}</h2>
             <p className="text-gray-500 mt-1">
-              Sign in to continue planning your trip
+              {t('auth.signInToContinue')}
             </p>
           </div>
 
@@ -73,7 +75,7 @@ const LoginPage = () => {
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
+              {t('auth.loginFailed')}
             </div>
           )}
 
@@ -81,23 +83,23 @@ const LoginPage = () => {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+                {t('auth.emailAddress')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   {...register('email', {
-                    required: 'Email is required',
+                    required: t('auth.emailAddress'),
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Please enter a valid email',
+                      message: t('auth.emailAddress'),
                     },
                   })}
                   className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="you@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                 />
               </div>
               {errors.email && (
@@ -110,19 +112,19 @@ const LoginPage = () => {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password', {
-                    required: 'Password is required',
+                    required: t('auth.password'),
                   })}
                   className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                     errors.password ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Enter your password"
+                  placeholder={t('auth.passwordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -150,7 +152,7 @@ const LoginPage = () => {
                 onClick={() => setShowForgotPassword(true)}
                 className="text-sm text-[#208896] hover:underline"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </button>
             </div>
 
@@ -163,11 +165,11 @@ const LoginPage = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  {t('auth.signingIn')}
                 </>
               ) : (
                 <>
-                  Sign in
+                  {t('auth.signIn')}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -186,19 +188,19 @@ const LoginPage = () => {
 
           {/* Sign Up Link */}
           <p className="text-center text-gray-600">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               to="/register"
               className="text-[#208896] font-medium hover:underline"
             >
-              Create account
+              {t('auth.createAccount')}
             </Link>
           </p>
         </div>
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-400 mt-6">
-          By signing in, you agree to our Terms of Service and Privacy Policy
+          {t('auth.termsAgreement')}
         </p>
     </div>
 

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Mail, Loader2, X, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Forgot Password Modal Component
  * Allows users to request a password reset email
  */
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -65,17 +67,16 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Check your email
+              {t('forgotPassword.successTitle')}
             </h2>
             <p className="text-gray-500 mb-6">
-              If an account exists with that email, we've sent instructions to
-              reset your password.
+              {t('forgotPassword.successMessage')}
             </p>
             <button
               onClick={handleClose}
               className="w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors"
             >
-              Back to login
+              {t('forgotPassword.backToLogin')}
             </button>
           </div>
         ) : (
@@ -86,33 +87,33 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                 <Mail className="w-7 h-7 text-[#208896]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Forgot password?
+                {t('forgotPassword.title')}
               </h2>
               <p className="text-gray-500 mt-1">
-                No worries, we'll send you reset instructions
+                {t('forgotPassword.subtitle')}
               </p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email address
+                  {t('forgotPassword.emailLabel')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     {...register('email', {
-                      required: 'Email is required',
+                      required: t('auth.emailAddress'),
                       pattern: {
                         value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: 'Please enter a valid email',
+                        message: t('auth.emailAddress'),
                       },
                     })}
                     className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
                       errors.email ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    placeholder="Enter your email"
+                    placeholder={t('forgotPassword.emailPlaceholder')}
                   />
                 </div>
                 {errors.email && (
@@ -130,10 +131,10 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending...
+                    {t('forgotPassword.sending')}
                   </>
                 ) : (
-                  'Reset password'
+                  t('forgotPassword.resetButton')
                 )}
               </button>
             </form>
@@ -143,7 +144,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               className="w-full mt-4 py-3 text-gray-600 font-medium hover:text-gray-900 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to login
+              {t('forgotPassword.backToLogin')}
             </button>
           </>
         )}
