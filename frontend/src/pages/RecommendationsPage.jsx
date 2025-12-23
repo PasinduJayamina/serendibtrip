@@ -453,8 +453,6 @@ const RecommendationsPage = () => {
               </button>
               {showWeather && (
                 <WeatherWidget
-                  latitude={coords.lat}
-                  longitude={coords.lng}
                   destinationName={destination}
                 />
               )}

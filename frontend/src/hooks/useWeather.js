@@ -26,48 +26,43 @@ import { useState, useEffect, useCallback } from 'react';
  * @property {ForecastDay[]} forecast - 5-day forecast
  */
 
-// OpenWeatherMap API base URL
-const API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
-const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
-
-// Validate API key is configured
-if (!API_KEY) {
-  console.warn(
-    'Weather API key not configured. Set VITE_WEATHER_API_KEY in .env.local'
-  );
-}
+// Backend API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
- * Map OpenWeatherMap condition codes to simple conditions
- * @param {number} code - Weather condition code
+ * Map weather condition to simple condition name
+ * @param {string} condition - Weather condition from API
  * @returns {string} Simple condition name
  */
-const mapCondition = (code) => {
-  if (code >= 200 && code < 300) return 'thunderstorm';
-  if (code >= 300 && code < 400) return 'drizzle';
-  if (code >= 500 && code < 600) return 'rainy';
-  if (code >= 600 && code < 700) return 'snow';
-  if (code >= 700 && code < 800) return 'foggy';
-  if (code === 800) return 'sunny';
-  if (code > 800 && code < 900) return 'cloudy';
+const mapCondition = (condition) => {
+  const conditionLower = condition?.toLowerCase() || '';
+  if (conditionLower.includes('thunder')) return 'thunderstorm';
+  if (conditionLower.includes('drizzle')) return 'drizzle';
+  if (conditionLower.includes('rain')) return 'rainy';
+  if (conditionLower.includes('snow')) return 'snow';
+  if (conditionLower.includes('fog') || conditionLower.includes('mist')) return 'foggy';
+  if (conditionLower.includes('clear') || conditionLower.includes('sun')) return 'sunny';
+  if (conditionLower.includes('cloud')) return 'cloudy';
   return 'unknown';
 };
 
 /**
- * Custom hook for fetching weather data
- * @param {number} latitude - Location latitude
- * @param {number} longitude - Location longitude
+ * Custom hook for fetching weather data via backend API
+ * Uses backend's caching system for optimized API calls
+ * 
+ * @param {string} destination - Destination name (e.g., 'Colombo', 'Kandy')
  * @returns {Object} Weather data, loading state, error, and refetch function
  */
-const useWeather = (latitude, longitude) => {
+const useWeather = (destination) => {
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
 
-  const fetchWeather = useCallback(async () => {
-    if (!latitude || !longitude) {
-      setError('Location coordinates are required');
+  const fetchWeather = useCallback(async (forceRefresh = false) => {
+    if (!destination) {
+      setError('Destination is required');
       setLoading(false);
       return;
     }
@@ -76,62 +71,48 @@ const useWeather = (latitude, longitude) => {
     setError(null);
 
     try {
-      // Fetch current weather
-      const currentResponse = await fetch(
-        `${API_BASE_URL}/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
+      // Call backend weather API (uses caching)
+      const refreshParam = forceRefresh ? '?refresh=true' : '';
+      const response = await fetch(
+        `${API_BASE_URL}/weather/${encodeURIComponent(destination)}${refreshParam}`
       );
 
-      if (!currentResponse.ok) {
-        throw new Error('Failed to fetch current weather');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch weather data');
       }
 
-      const currentData = await currentResponse.json();
+      const result = await response.json();
 
-      // Fetch 5-day forecast
-      const forecastResponse = await fetch(
-        `${API_BASE_URL}/forecast?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
-      );
-
-      if (!forecastResponse.ok) {
-        throw new Error('Failed to fetch forecast');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch weather data');
       }
 
-      const forecastData = await forecastResponse.json();
+      const data = result.data;
 
       // Process current weather
       const processedWeather = {
-        temp: Math.round(currentData.main.temp),
-        feelsLike: Math.round(currentData.main.feels_like),
-        humidity: currentData.main.humidity,
-        windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
-        condition: mapCondition(currentData.weather[0].id),
-        description: currentData.weather[0].description,
-        icon: currentData.weather[0].icon,
+        temp: data.current.temp,
+        feelsLike: data.current.feelsLike,
+        humidity: data.current.humidity,
+        windSpeed: Math.round(data.current.windSpeed * 3.6), // Convert m/s to km/h
+        condition: mapCondition(data.current.condition),
+        description: data.current.description,
+        icon: data.current.icon,
       };
 
-      // Process forecast - get one entry per day (noon)
-      const dailyForecasts = {};
-      forecastData.list.forEach((item) => {
-        const date = item.dt_txt.split(' ')[0];
-        const hour = parseInt(item.dt_txt.split(' ')[1].split(':')[0]);
-
-        // Prefer noon (12:00) reading for each day
-        if (!dailyForecasts[date] || hour === 12) {
-          dailyForecasts[date] = {
-            date: date,
-            tempMax: Math.round(item.main.temp_max),
-            tempMin: Math.round(item.main.temp_min),
-            condition: mapCondition(item.weather[0].id),
-            icon: item.weather[0].icon,
-          };
-        }
-      });
-
-      // Get next 5 days
-      const processedForecast = Object.values(dailyForecasts).slice(0, 5);
+      // Process forecast
+      const processedForecast = (data.forecast || []).slice(0, 5).map((day) => ({
+        date: typeof day.date === 'string' ? day.date.split('T')[0] : new Date(day.date).toISOString().split('T')[0],
+        tempMax: day.tempMax,
+        tempMin: day.tempMin,
+        condition: mapCondition(day.condition),
+        icon: day.icon,
+      }));
 
       setWeather(processedWeather);
       setForecast(processedForecast);
+      setFromCache(data.fromCache || false);
       setError(null);
     } catch (err) {
       console.error('Weather fetch error:', err);
@@ -139,7 +120,7 @@ const useWeather = (latitude, longitude) => {
     } finally {
       setLoading(false);
     }
-  }, [latitude, longitude]);
+  }, [destination]);
 
   useEffect(() => {
     fetchWeather();
@@ -150,6 +131,7 @@ const useWeather = (latitude, longitude) => {
     forecast,
     loading,
     error,
+    fromCache,
     refetch: fetchWeather,
   };
 };
