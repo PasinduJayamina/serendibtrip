@@ -12,12 +12,14 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useToast } from '../components/ui/Toast';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const { login, isLoading, error } = useUserStore();
 
@@ -145,6 +147,7 @@ const LoginPage = () => {
             <div className="flex justify-end">
               <button
                 type="button"
+                onClick={() => setShowForgotPassword(true)}
                 className="text-sm text-[#208896] hover:underline"
               >
                 Forgot password?
@@ -197,7 +200,13 @@ const LoginPage = () => {
         <p className="text-center text-sm text-gray-400 mt-6">
           By signing in, you agree to our Terms of Service and Privacy Policy
         </p>
-      </div>
+    </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };
