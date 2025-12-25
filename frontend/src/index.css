@@ -1,10 +1,48 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Custom CSS Properties */
+:root {
+  --primary: #d4a853;
+  --primary-dark: #b8893a;
+  --secondary: #2d6a4f;
+  --secondary-dark: #245540;
+  --accent: #1e88a8;
+  --accent-dark: #186d87;
+  --sand: #f5e6d3;
+  --terracotta: #c75b39;
+}
+
 body {
   margin: 0;
   padding: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  background: linear-gradient(to bottom, #fdfaf6, #faf5ed);
+  min-height: 100vh;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Outfit", "Inter", sans-serif;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Selection */
+::selection {
+  background-color: #d4a85380;
+  color: #342610;
 }
 
 /* Toast animation */

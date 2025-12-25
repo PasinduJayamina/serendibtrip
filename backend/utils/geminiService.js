@@ -394,8 +394,106 @@ Respond with ONLY valid JSON (no markdown):
   }
 }
 
+/**
+ * Generates a conversational chat response for the AI Travel Concierge
+ * 
+ * @async
+ * @function generateChatResponse
+ * @param {Object} params - Chat parameters
+ * @param {string} params.message - User's message
+ * @param {Array} params.conversationHistory - Previous messages for context
+ * @param {Object} params.userContext - User preferences and info
+ * @returns {Promise<Object>} Chat response with suggestions
+ */
+async function generateChatResponse(params) {
+  try {
+    const { message, conversationHistory = [], userContext } = params;
+
+    if (!message) {
+      throw new Error('Message is required');
+    }
+
+    // Build conversation context
+    const historyContext = conversationHistory
+      .slice(-6) // Keep last 6 messages for context
+      .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+
+    // User context for personalization
+    const userInfo = userContext ? `
+User Information:
+- Name: ${userContext.name || 'Guest'}
+- Interests: ${userContext.preferences?.interests?.join(', ') || 'Not specified'}
+- Budget preference: ${userContext.preferences?.budget || 'Not specified'}
+` : '';
+
+    const systemPrompt = `You are SerendibAI, a friendly and knowledgeable Sri Lanka travel assistant. Your personality:
+- Warm, helpful, and enthusiastic about Sri Lanka
+- Expert in Sri Lankan destinations, culture, food, and activities
+- Give practical, actionable advice with local insights
+- Keep responses concise (2-4 paragraphs max)
+- Use emojis sparingly but effectively (🌴 🏛️ 🍛 etc.)
+- Suggest follow-up actions when relevant
+
+${userInfo}
+
+${historyContext ? `Recent conversation:\n${historyContext}\n` : ''}
+
+Current user message: ${message}
+
+Respond naturally and helpfully. If the user asks about:
+- Places: Suggest specific attractions with brief descriptions
+- Food: Recommend local dishes and where to find them
+- Weather: Give seasonal advice and what to pack
+- Planning: Help structure their trip with practical tips
+- Anything else: Be helpful and connect it to Sri Lanka travel when possible
+
+Format your response as conversational text. At the end, if relevant, suggest 2-3 follow-up questions the user might want to ask.`;
+
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(systemPrompt);
+    });
+
+    const response = await result.response;
+    let text = response.text().trim();
+
+    // Extract suggestions from the response if present
+    const suggestions = [];
+    const suggestionMatch = text.match(/(?:You might also want to know:|Follow-up questions:|You could also ask:)([\s\S]*?)$/i);
+    if (suggestionMatch) {
+      const suggestionText = suggestionMatch[1];
+      const matches = suggestionText.match(/[-•]\s*([^\n]+)/g);
+      if (matches) {
+        matches.forEach(match => {
+          const suggestion = match.replace(/^[-•]\s*/, '').trim();
+          if (suggestion.length > 10 && suggestion.length < 100) {
+            suggestions.push(suggestion);
+          }
+        });
+      }
+      // Remove suggestions from main response
+      text = text.replace(suggestionMatch[0], '').trim();
+    }
+
+    console.log(`💬 Generated chat response (${text.length} chars)`);
+
+    return {
+      success: true,
+      response: text,
+      suggestions: suggestions.slice(0, 3),
+    };
+  } catch (error) {
+    console.error('❌ Error generating chat response:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to generate response',
+    };
+  }
+}
+
 module.exports = {
   generateTravelItinerary,
   generateActivityRecommendations,
   generateFoodRecommendations,
+  generateChatResponse,
 };

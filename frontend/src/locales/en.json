@@ -29,6 +29,17 @@
     "signOut": "Sign out",
     "getStarted": "Get Started"
   },
+  "chat": {
+    "askAI": "Ask SerendibAI",
+    "subtitle": "Your travel assistant",
+    "welcome": "Hello! 👋 I'm SerendibAI, your personal Sri Lanka travel assistant.",
+    "welcomeAuth": "Hello {{name}}! 👋 I'm SerendibAI, your personal Sri Lanka travel assistant.",
+    "howCanIHelp": "Ask me anything about traveling in Sri Lanka - from hidden gems to local cuisine!",
+    "placeholder": "Ask me anything about Sri Lanka...",
+    "thinking": "Thinking...",
+    "errorMessage": "Sorry, I couldn't process that. Please try again!",
+    "quickActions": "Quick suggestions"
+  },
   "auth": {
     "welcomeBack": "Welcome back",
     "signInToContinue": "Sign in to continue planning your trip",
@@ -117,6 +128,7 @@
     "startPlanningFree": "Start Planning Free",
     "planYourTrip": "Plan Your Trip",
     "fillDetails": "Fill in the details to get personalized recommendations",
+    "aiPowered": "AI-Powered Travel Planning",
     "destinationWeather": "Destination Weather",
     "exploreAttractions": "Explore Attractions",
     "savedTrips": "Saved Trips",
