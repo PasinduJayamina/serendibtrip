@@ -3,6 +3,8 @@ import { Mail, Loader2, X, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 /**
  * Forgot Password Modal Component
  * Allows users to request a password reset email
@@ -11,6 +13,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const {
     register,
@@ -25,13 +28,30 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
+    setErrorMessage('');
 
-    // Simulate API call - replace with actual API when backend is ready
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: data.email }),
+      });
 
-    console.log('Password reset requested for:', data.email);
-    setIsSubmitting(false);
-    setIsSuccess(true);
+      const result = await response.json();
+
+      if (response.ok) {
+        setIsSuccess(true);
+      } else {
+        setErrorMessage(result.message || t('forgotPassword.error'));
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      setErrorMessage(t('forgotPassword.networkError'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {

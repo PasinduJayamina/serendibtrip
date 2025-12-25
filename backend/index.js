@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +35,49 @@ const connectDB = async () => {
 // Connect to database
 connectDB();
 
+// ============ SECURITY MIDDLEWARE ============
+// Helmet - sets various HTTP headers for security
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false, // Disable CSP for development
+}));
+
+// General rate limiter - 100 requests per 15 minutes
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict rate limiter for auth routes - 10 requests per 15 minutes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: {
+    success: false,
+    message: 'Too many authentication attempts, please try again after 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Password reset limiter - 5 requests per hour
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: {
+    success: false,
+    message: 'Too many password reset attempts, please try again after an hour.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ============ MIDDLEWARE ============
 app.use(
   cors({
@@ -48,8 +93,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Apply general rate limiter to all routes
+app.use(generalLimiter);
+
 // ============ ROUTES ============
-app.use('/api/auth', authRoutes);
+// Apply stricter rate limiting to auth routes
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/users', usersRoutes);
