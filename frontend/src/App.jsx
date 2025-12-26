@@ -19,6 +19,7 @@ import UserProfilePage from './pages/UserProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import AIChatAssistant from './components/AIChatAssistant';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
@@ -73,7 +74,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-[#208896]">
+            <span className="text-2xl font-display font-bold bg-gradient-to-r from-secondary-600 to-accent-500 bg-clip-text text-transparent">
               {t('common.appName')}
             </span>
           </Link>
@@ -86,8 +87,8 @@ const Navigation = () => {
                 to={link.to}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                   location.pathname === link.to
-                    ? 'bg-[#208896] text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-secondary-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-secondary-50 hover:text-secondary-700'
                 }`}
               >
                 <link.icon className="w-4 h-4" />
@@ -102,7 +103,7 @@ const Navigation = () => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-[#208896] rounded-full flex items-center justify-center text-white font-medium">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-medium shadow-sm">
                     {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <span className="text-gray-700 font-medium hidden lg:block">
@@ -143,7 +144,7 @@ const Navigation = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 bg-[#208896] text-white rounded-lg font-medium hover:bg-[#1a6d78] transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white rounded-lg font-medium hover:from-secondary-600 hover:to-secondary-700 transition-all shadow-sm"
                 >
                   {t('nav.getStarted')}
                 </Link>
@@ -301,20 +302,29 @@ function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f0fafb] to-white">
+    <div className="min-h-screen bg-gradient-to-b from-sand-50 to-white">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#208896] to-[#1a6d78] text-white py-12 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+      <div className="bg-gradient-to-r from-secondary-600 via-secondary-500 to-accent-500 text-white py-16 px-4 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full"></div>
+          <div className="absolute bottom-10 right-20 w-24 h-24 border-4 border-white rounded-full"></div>
+          <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-white/20 rounded-full"></div>
+        </div>
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <span className="inline-block px-4 py-1 bg-white/20 rounded-full text-sm font-medium mb-4 backdrop-blur-sm">
+            🌴 {t('home.aiPowered') || 'AI-Powered Travel Planning'}
+          </span>
+          <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
             {t('home.heroTitle')}
           </h1>
-          <p className="text-lg text-white/80 mb-6 max-w-2xl mx-auto">
+          <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
             {t('home.heroSubtitle')}
           </p>
           {!isAuthenticated && (
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#208896] rounded-lg font-medium hover:bg-gray-100 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               {t('home.startPlanningFree')}
             </Link>
@@ -338,13 +348,13 @@ function HomePage() {
         <div className="mt-8">
           <div className="flex items-center gap-4 mb-4">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <CloudSun className="w-6 h-6 text-[#208896]" />
+              <CloudSun className="w-6 h-6 text-secondary-500" />
               {t('home.destinationWeather')}
             </h2>
             <select
               value={selectedDestination}
               onChange={(e) => setSelectedDestination(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none"
             >
               {Object.keys(DESTINATION_COORDS).map((dest) => (
                 <option key={dest} value={dest}>
@@ -364,7 +374,7 @@ function HomePage() {
         {/* Attractions Map Section */}
         <div className="mt-8">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-            <Map className="w-6 h-6 text-[#208896]" />
+            <Map className="w-6 h-6 text-secondary-500" />
             {t('home.exploreAttractions')}
           </h2>
           <AttractionMap
@@ -393,7 +403,7 @@ function HomePage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <MapPin className="w-5 h-5 text-[#208896]" />
+                        <MapPin className="w-5 h-5 text-secondary-500" />
                         <h3 className="text-xl font-semibold text-gray-800">
                           {trip.destination}
                         </h3>
@@ -537,6 +547,8 @@ function AppContent() {
           }
         />
       </Routes>
+      {/* AI Chat Assistant - Global floating button */}
+      {!hideNav && <AIChatAssistant />}
     </>
   );
 }

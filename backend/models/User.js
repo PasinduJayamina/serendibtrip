@@ -210,6 +210,20 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    notificationSettings: {
+      tripReminders: {
+        type: Boolean,
+        default: true,
+      },
+      weatherAlerts: {
+        type: Boolean,
+        default: true,
+      },
+      reminderDays: {
+        type: [Number],
+        default: [7, 3, 1], // Send reminders 7, 3, and 1 day before trip
+      },
+    },
     isActive: {
       type: Boolean,
       default: true,

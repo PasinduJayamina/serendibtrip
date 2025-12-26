@@ -394,8 +394,213 @@ Respond with ONLY valid JSON (no markdown):
   }
 }
 
+/**
+ * Generates a conversational chat response for the AI Travel Concierge
+ * 
+ * @async
+ * @function generateChatResponse
+ * @param {Object} params - Chat parameters
+ * @param {string} params.message - User's message
+ * @param {Array} params.conversationHistory - Previous messages for context
+ * @param {Object} params.userContext - User preferences and info
+ * @returns {Promise<Object>} Chat response with suggestions
+ */
+async function generateChatResponse(params) {
+  try {
+    const { message, conversationHistory = [], userContext } = params;
+
+    if (!message) {
+      throw new Error('Message is required');
+    }
+
+    // Build conversation context
+    const historyContext = conversationHistory
+      .slice(-6) // Keep last 6 messages for context
+      .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+
+    // User context for personalization
+    const userInfo = userContext ? `
+User Information:
+- Name: ${userContext.name || 'Guest'}
+- Interests: ${userContext.preferences?.interests?.join(', ') || 'Not specified'}
+- Budget preference: ${userContext.preferences?.budget || 'Not specified'}
+` : '';
+
+    const systemPrompt = `You are SerendibAI, a friendly and knowledgeable Sri Lanka travel assistant. Your personality:
+- Warm, helpful, and enthusiastic about Sri Lanka
+- Expert in Sri Lankan destinations, culture, food, and activities
+- Give practical, actionable advice with local insights
+- Keep responses concise (2-4 paragraphs max)
+- Use emojis sparingly but effectively (🌴 🏛️ 🍛 etc.)
+- Suggest follow-up actions when relevant
+
+${userInfo}
+
+${historyContext ? `Recent conversation:\n${historyContext}\n` : ''}
+
+Current user message: ${message}
+
+Respond naturally and helpfully. If the user asks about:
+- Places: Suggest specific attractions with brief descriptions
+- Food: Recommend local dishes and where to find them
+- Weather: Give seasonal advice and what to pack
+- Planning: Help structure their trip with practical tips
+- Anything else: Be helpful and connect it to Sri Lanka travel when possible
+
+Format your response as conversational text. At the end, if relevant, suggest 2-3 follow-up questions the user might want to ask.`;
+
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(systemPrompt);
+    });
+
+    const response = await result.response;
+    let text = response.text().trim();
+
+    // Extract suggestions from the response if present
+    const suggestions = [];
+    const suggestionMatch = text.match(/(?:You might also want to know:|Follow-up questions:|You could also ask:)([\s\S]*?)$/i);
+    if (suggestionMatch) {
+      const suggestionText = suggestionMatch[1];
+      const matches = suggestionText.match(/[-•]\s*([^\n]+)/g);
+      if (matches) {
+        matches.forEach(match => {
+          const suggestion = match.replace(/^[-•]\s*/, '').trim();
+          if (suggestion.length > 10 && suggestion.length < 100) {
+            suggestions.push(suggestion);
+          }
+        });
+      }
+      // Remove suggestions from main response
+      text = text.replace(suggestionMatch[0], '').trim();
+    }
+
+    console.log(`💬 Generated chat response (${text.length} chars)`);
+
+    return {
+      success: true,
+      response: text,
+      suggestions: suggestions.slice(0, 3),
+    };
+  } catch (error) {
+    console.error('❌ Error generating chat response:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to generate response',
+    };
+  }
+}
+
+/**
+ * Generates a personalized packing list based on trip details and weather
+ * 
+ * @async
+ * @function generatePackingList
+ * @param {Object} params - Packing list parameters
+ * @param {string} params.destination - Trip destination
+ * @param {number} params.duration - Trip duration in days
+ * @param {Array} params.activities - Planned activities/interests
+ * @param {Object} params.weather - Current weather info
+ * @returns {Promise<Object>} Packing list with categories and items
+ */
+async function generatePackingList(params) {
+  try {
+    const { destination, duration, activities = [], weather, groupSize = 1 } = params;
+
+    if (!destination) {
+      throw new Error('Destination is required');
+    }
+
+    // Build weather context
+    const weatherContext = weather ? `
+Current weather: ${weather.temperature}°C, ${weather.condition}
+Forecast: ${weather.forecast?.map(f => `${f.day}: ${f.temp}°C, ${f.condition}`).join('; ') || 'Not available'}
+` : 'Weather data not available';
+
+    const prompt = `You are a travel packing expert for Sri Lanka trips. Generate a comprehensive packing list for:
+
+Destination: ${destination}, Sri Lanka
+Duration: ${duration} days
+Activities: ${activities.join(', ') || 'General sightseeing'}
+Group size: ${groupSize} person(s)
+${weatherContext}
+
+Consider:
+- Sri Lankan climate (tropical, humid)
+- Local customs (modest dress for temples)
+- The specific activities planned
+- Current/forecasted weather
+
+Respond with ONLY valid JSON (no markdown):
+{
+  "weatherTip": "Brief weather-based packing advice (1-2 sentences)",
+  "categories": [
+    {
+      "name": "Clothing",
+      "items": [
+        { "name": "Light cotton t-shirts", "quantity": 4 },
+        { "name": "Item name", "quantity": 1 }
+      ]
+    },
+    {
+      "name": "Toiletries",
+      "items": [...]
+    },
+    {
+      "name": "Electronics",
+      "items": [...]
+    },
+    {
+      "name": "Documents",
+      "items": [...]
+    },
+    {
+      "name": "Essentials",
+      "items": [...]
+    }
+  ],
+  "tips": [
+    "Pro tip 1",
+    "Pro tip 2",
+    "Pro tip 3"
+  ]
+}
+
+Include 5-8 items per category. Make quantities appropriate for ${duration} days.`;
+
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(prompt);
+    });
+
+    const response = await result.response;
+    let text = response.text().trim();
+
+    // Clean markdown if present
+    if (text.startsWith('```')) {
+      text = text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
+    }
+
+    const packingList = JSON.parse(text);
+
+    console.log(`📦 Generated packing list for ${destination} (${duration} days)`);
+
+    return {
+      success: true,
+      packingList,
+    };
+  } catch (error) {
+    console.error('❌ Error generating packing list:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to generate packing list',
+    };
+  }
+}
+
 module.exports = {
   generateTravelItinerary,
   generateActivityRecommendations,
   generateFoodRecommendations,
+  generateChatResponse,
+  generatePackingList,
 };

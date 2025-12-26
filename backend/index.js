@@ -102,6 +102,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/notifications', require('./routes/notifications'));
 
 // ============ HEALTH CHECK ============
 app.get('/api/health', (req, res) => {

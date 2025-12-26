@@ -153,7 +153,247 @@ const verifyEmailConfig = async () => {
   }
 };
 
+/**
+ * Send pre-trip reminder email
+ * @param {Object} params - Email parameters
+ * @param {string} params.email - Recipient email
+ * @param {string} params.userName - User's name
+ * @param {Object} params.trip - Trip details
+ * @returns {Promise<boolean>}
+ */
+const sendTripReminderEmail = async ({ email, userName, trip }) => {
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.log('📧 [DEV MODE] Trip reminder would be sent to:', email);
+    console.log('📧 [DEV MODE] Trip:', trip.destination, '-', trip.startDate);
+    return true;
+  }
+
+  const fromEmail = process.env.EMAIL_FROM || `SerendibTrip <${process.env.EMAIL_USER}>`;
+  const daysUntil = Math.ceil((new Date(trip.startDate) - new Date()) / (1000 * 60 * 60 * 24));
+  const tripUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/itinerary`;
+
+  const mailOptions = {
+    from: fromEmail,
+    to: email,
+    subject: `🌴 ${daysUntil} day${daysUntil !== 1 ? 's' : ''} until your ${trip.destination} adventure!`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #2D6A4F, #1E88A8); color: white; padding: 30px; text-align: center; }
+          .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+          .countdown { font-size: 48px; font-weight: bold; margin: 10px 0; }
+          .content { padding: 30px; }
+          .checklist { background: #E8F3EE; border-radius: 8px; padding: 20px; margin: 20px 0; }
+          .checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; color: #2D6A4F; }
+          .button { display: inline-block; background: linear-gradient(135deg, #D4A853, #B8893A); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+          .button-container { text-align: center; margin: 25px 0; }
+          .footer { text-align: center; color: #999; font-size: 12px; padding: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <div class="logo">🌴 SerendibTrip</div>
+              <div class="countdown">${daysUntil}</div>
+              <div>day${daysUntil !== 1 ? 's' : ''} to go!</div>
+            </div>
+            
+            <div class="content">
+              <h2 style="color: #333; margin-top: 0;">Hi ${userName || 'Traveler'} 👋</h2>
+              
+              <p style="color: #666; line-height: 1.6;">
+                Your adventure to <strong>${trip.destination}</strong> is almost here! 
+                Here's a quick checklist to make sure you're ready:
+              </p>
+              
+              <div class="checklist">
+                <div class="checklist-item">☐ Check your passport and travel documents</div>
+                <div class="checklist-item">☐ Review your packing list</div>
+                <div class="checklist-item">☐ Download offline maps of ${trip.destination}</div>
+                <div class="checklist-item">☐ Exchange some Sri Lankan Rupees</div>
+                <div class="checklist-item">☐ Confirm your accommodations</div>
+              </div>
+              
+              <div class="button-container">
+                <a href="${tripUrl}" class="button">View Your Itinerary</a>
+              </div>
+              
+              <p style="color: #666; font-size: 14px;">
+                📍 <strong>Trip Details:</strong><br>
+                ${trip.destination} • ${trip.duration || '?'} days • ${trip.groupSize || 1} traveler${(trip.groupSize || 1) !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} SerendibTrip. Your Sri Lanka Travel Planner.</p>
+            <p>Happy travels! 🌴</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Hi ${userName || 'Traveler'},
+      
+      Only ${daysUntil} day${daysUntil !== 1 ? 's' : ''} until your ${trip.destination} adventure!
+      
+      Quick Checklist:
+      - Check your passport and travel documents
+      - Review your packing list
+      - Download offline maps
+      - Exchange some Sri Lankan Rupees
+      - Confirm your accommodations
+      
+      View your itinerary: ${tripUrl}
+      
+      Happy travels!
+      - SerendibTrip Team
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📧 Trip reminder sent to:', email);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send trip reminder:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * Send weather alert email
+ * @param {Object} params - Email parameters
+ * @param {string} params.email - Recipient email
+ * @param {string} params.userName - User's name
+ * @param {Object} params.trip - Trip details
+ * @param {Object} params.weather - Weather data
+ * @returns {Promise<boolean>}
+ */
+const sendWeatherAlertEmail = async ({ email, userName, trip, weather }) => {
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.log('📧 [DEV MODE] Weather alert would be sent to:', email);
+    console.log('📧 [DEV MODE] Weather:', weather);
+    return true;
+  }
+
+  const fromEmail = process.env.EMAIL_FROM || `SerendibTrip <${process.env.EMAIL_USER}>`;
+  const isRainy = weather.condition?.toLowerCase().includes('rain');
+  const alertIcon = isRainy ? '🌧️' : '☀️';
+
+  const mailOptions = {
+    from: fromEmail,
+    to: email,
+    subject: `${alertIcon} Weather Update for your ${trip.destination} trip`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .header { background: ${isRainy ? 'linear-gradient(135deg, #4A90A4, #2ecc71)' : 'linear-gradient(135deg, #F39C12, #E74C3C)'}; color: white; padding: 30px; text-align: center; }
+          .weather-icon { font-size: 64px; }
+          .temp { font-size: 36px; font-weight: bold; }
+          .content { padding: 30px; }
+          .tip-box { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px; }
+          .footer { text-align: center; color: #999; font-size: 12px; padding: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <div class="weather-icon">${alertIcon}</div>
+              <div class="temp">${weather.temperature || weather.temp || '?'}°C</div>
+              <div>${weather.condition || 'Current conditions'}</div>
+            </div>
+            
+            <div class="content">
+              <h2 style="color: #333; margin-top: 0;">Weather Update for ${trip.destination}</h2>
+              
+              <p style="color: #666; line-height: 1.6;">
+                Hi ${userName || 'Traveler'}, here's what to expect weather-wise for your upcoming trip:
+              </p>
+              
+              ${isRainy ? `
+              <div class="tip-box">
+                <strong>☔ Rainy weather expected!</strong><br>
+                Don't forget to pack an umbrella and waterproof bag for your electronics.
+              </div>
+              ` : `
+              <div class="tip-box">
+                <strong>☀️ Nice weather ahead!</strong><br>
+                Remember sunscreen, sunglasses, and stay hydrated!
+              </div>
+              `}
+              
+              <p style="color: #666;">
+                <strong>Packing Tips:</strong>
+              </p>
+              <ul style="color: #666;">
+                ${isRainy ? `
+                <li>Waterproof jacket or poncho</li>
+                <li>Quick-dry clothing</li>
+                <li>Waterproof phone case</li>
+                ` : `
+                <li>Light, breathable clothing</li>
+                <li>Wide-brimmed hat</li>
+                <li>Reusable water bottle</li>
+                `}
+              </ul>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} SerendibTrip</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Weather Update for ${trip.destination}
+      
+      Hi ${userName || 'Traveler'},
+      
+      Current conditions: ${weather.condition || 'N/A'}
+      Temperature: ${weather.temperature || weather.temp || '?'}°C
+      
+      ${isRainy ? 'Rainy weather expected! Pack an umbrella.' : 'Nice weather ahead! Remember sunscreen!'}
+      
+      - SerendibTrip Team
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📧 Weather alert sent to:', email);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send weather alert:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   sendPasswordResetEmail,
   verifyEmailConfig,
+  sendTripReminderEmail,
+  sendWeatherAlertEmail,
 };

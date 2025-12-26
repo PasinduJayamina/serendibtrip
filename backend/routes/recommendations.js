@@ -4,6 +4,8 @@ const {
   generateTravelItinerary,
   generateActivityRecommendations,
   generateFoodRecommendations,
+  generateChatResponse,
+  generatePackingList,
 } = require('../utils/geminiService');
 
 /**
@@ -134,6 +136,80 @@ router.post('/food', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to generate food recommendations',
+    });
+  }
+});
+
+/**
+ * @route   POST /api/recommendations/packing-list
+ * @desc    Generate personalized packing list based on trip and weather
+ * @access  Public
+ */
+router.post('/packing-list', async (req, res) => {
+  try {
+    const { destination, duration, activities, weather, groupSize } = req.body;
+
+    if (!destination) {
+      return res.status(400).json({
+        success: false,
+        error: 'Destination is required',
+      });
+    }
+
+    const result = await generatePackingList({
+      destination,
+      duration: duration || 3,
+      activities: activities || [],
+      weather: weather || null,
+      groupSize: groupSize || 1,
+    });
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Packing list error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate packing list',
+    });
+  }
+});
+
+/**
+ * @route   POST /api/recommendations/chat
+ * @desc    AI Chat Concierge - conversational travel assistant
+ * @access  Public
+ */
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, conversationHistory, userContext } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required',
+      });
+    }
+
+    const result = await generateChatResponse({
+      message,
+      conversationHistory: conversationHistory || [],
+      userContext: userContext || null,
+    });
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate chat response',
     });
   }
 });
