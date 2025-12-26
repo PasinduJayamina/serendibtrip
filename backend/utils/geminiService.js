@@ -491,9 +491,116 @@ Format your response as conversational text. At the end, if relevant, suggest 2-
   }
 }
 
+/**
+ * Generates a personalized packing list based on trip details and weather
+ * 
+ * @async
+ * @function generatePackingList
+ * @param {Object} params - Packing list parameters
+ * @param {string} params.destination - Trip destination
+ * @param {number} params.duration - Trip duration in days
+ * @param {Array} params.activities - Planned activities/interests
+ * @param {Object} params.weather - Current weather info
+ * @returns {Promise<Object>} Packing list with categories and items
+ */
+async function generatePackingList(params) {
+  try {
+    const { destination, duration, activities = [], weather, groupSize = 1 } = params;
+
+    if (!destination) {
+      throw new Error('Destination is required');
+    }
+
+    // Build weather context
+    const weatherContext = weather ? `
+Current weather: ${weather.temperature}°C, ${weather.condition}
+Forecast: ${weather.forecast?.map(f => `${f.day}: ${f.temp}°C, ${f.condition}`).join('; ') || 'Not available'}
+` : 'Weather data not available';
+
+    const prompt = `You are a travel packing expert for Sri Lanka trips. Generate a comprehensive packing list for:
+
+Destination: ${destination}, Sri Lanka
+Duration: ${duration} days
+Activities: ${activities.join(', ') || 'General sightseeing'}
+Group size: ${groupSize} person(s)
+${weatherContext}
+
+Consider:
+- Sri Lankan climate (tropical, humid)
+- Local customs (modest dress for temples)
+- The specific activities planned
+- Current/forecasted weather
+
+Respond with ONLY valid JSON (no markdown):
+{
+  "weatherTip": "Brief weather-based packing advice (1-2 sentences)",
+  "categories": [
+    {
+      "name": "Clothing",
+      "items": [
+        { "name": "Light cotton t-shirts", "quantity": 4 },
+        { "name": "Item name", "quantity": 1 }
+      ]
+    },
+    {
+      "name": "Toiletries",
+      "items": [...]
+    },
+    {
+      "name": "Electronics",
+      "items": [...]
+    },
+    {
+      "name": "Documents",
+      "items": [...]
+    },
+    {
+      "name": "Essentials",
+      "items": [...]
+    }
+  ],
+  "tips": [
+    "Pro tip 1",
+    "Pro tip 2",
+    "Pro tip 3"
+  ]
+}
+
+Include 5-8 items per category. Make quantities appropriate for ${duration} days.`;
+
+    const result = await retryWithBackoff(async (model) => {
+      return await model.generateContent(prompt);
+    });
+
+    const response = await result.response;
+    let text = response.text().trim();
+
+    // Clean markdown if present
+    if (text.startsWith('```')) {
+      text = text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
+    }
+
+    const packingList = JSON.parse(text);
+
+    console.log(`📦 Generated packing list for ${destination} (${duration} days)`);
+
+    return {
+      success: true,
+      packingList,
+    };
+  } catch (error) {
+    console.error('❌ Error generating packing list:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to generate packing list',
+    };
+  }
+}
+
 module.exports = {
   generateTravelItinerary,
   generateActivityRecommendations,
   generateFoodRecommendations,
   generateChatResponse,
+  generatePackingList,
 };

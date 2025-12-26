@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { RecommendationPanel } from '../components/recommendations';
 import WeatherWidget from '../components/WeatherWidget';
 import AttractionMap from '../components/AttractionMap';
+import PackingListGenerator from '../components/PackingListGenerator';
 import {
   MapPinIcon,
   SparklesIcon,
@@ -495,6 +496,19 @@ const RecommendationsPage = () => {
                   />
                 </div>
               )}
+            </div>
+
+            {/* Packing List Generator */}
+            <div className="mt-6">
+              <PackingListGenerator
+                tripDetails={{
+                  destination,
+                  duration,
+                  interests,
+                  groupSize,
+                }}
+                weather={null}
+              />
             </div>
           </div>
 

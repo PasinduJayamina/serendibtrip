@@ -134,6 +134,19 @@
     "savedTrips": "Saved Trips",
     "getAiRecommendations": "Get AI Recommendations"
   },
+  "packingList": {
+    "title": "Smart Packing List",
+    "description": "Generate a personalized packing list based on your destination, weather, and activities",
+    "generate": "Generate Packing List",
+    "generating": "Creating your packing list...",
+    "pleaseWait": "Analyzing weather and activities",
+    "regenerate": "Regenerate",
+    "progress": "Packing progress",
+    "items": "items",
+    "noDestination": "Please select a destination first",
+    "error": "Failed to generate packing list. Please try again.",
+    "proTips": "Pro Tips"
+  },
   "tripPlanner": {
     "title": "Plan Your Sri Lanka Trip",
     "subtitle": "Fill in the details below to create your personalized itinerary",
