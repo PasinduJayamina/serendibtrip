@@ -15,6 +15,48 @@ const CONFIG = {
   RETRY_DELAY_MS: 1000,
 };
 
+// Sri Lanka city name mappings for OpenWeatherMap API
+// Some cities need country code or alternative names to be recognized
+const CITY_MAPPINGS = {
+  mirissa: 'Matara,LK', // Mirissa is near Matara
+  arugam: 'Pottuvil,LK', // Arugam Bay is near Pottuvil
+  'arugam bay': 'Pottuvil,LK',
+  'arugambay': 'Pottuvil,LK',
+  ella: 'Ella,LK',
+  unawatuna: 'Galle,LK', // Unawatuna is near Galle
+  hikkaduwa: 'Ambalangoda,LK', // Hikkaduwa is between Galle and Ambalangoda
+  bentota: 'Bentota,LK',
+  tangalle: 'Tangalla,LK', // Alternative spelling
+  polonnaruwa: 'Polonnaruwa,LK',
+  anuradhapura: 'Anuradhapura,LK',
+  dambulla: 'Dambulla,LK',
+  sigiriya: 'Dambulla,LK', // Sigiriya is near Dambulla
+  nuwara: 'Nuwara Eliya,LK',
+  'nuwara eliya': 'Nuwara Eliya,LK',
+  haputale: 'Haputale,LK',
+  trincomalee: 'Trincomalee,LK',
+  jaffna: 'Jaffna,LK',
+  colombo: 'Colombo,LK',
+  kandy: 'Kandy,LK',
+  galle: 'Galle,LK',
+  matara: 'Matara,LK',
+  negombo: 'Negombo,LK',
+  yala: 'Hambantota,LK', // Yala National Park is near Hambantota
+  'yala national park': 'Hambantota,LK',
+  udawalawe: 'Embilipitiya,LK', // Udawalawe is near Embilipitiya
+  wilpattu: 'Puttalam,LK', // Wilpattu is near Puttalam
+  horton: 'Nuwara Eliya,LK', // Horton Plains is near Nuwara Eliya
+  'horton plains': 'Nuwara Eliya,LK',
+  adams: 'Ratnapura,LK', // Adam's Peak is near Ratnapura
+  "adam's peak": 'Ratnapura,LK',
+  kitulgala: 'Kegalle,LK', // Kitulgala is near Kegalle
+  weligama: 'Matara,LK', // Weligama is near Matara
+  kalutara: 'Kalutara,LK',
+  ratnapura: 'Ratnapura,LK',
+  batticaloa: 'Batticaloa,LK',
+  kalpitiya: 'Puttalam,LK', // Kalpitiya is near Puttalam
+};
+
 /**
  * WeatherCacheService
  * Efficient caching system for weather data with batch processing
@@ -233,11 +275,15 @@ class WeatherCacheService {
    */
   async _fetchFromAPI(destination, attempt = 1) {
     try {
+      // Map destination to OpenWeatherMap-recognized name
+      const normalizedDest = destination.toLowerCase().trim();
+      const apiQuery = CITY_MAPPINGS[normalizedDest] || `${destination},LK`;
+      
       // Fetch current weather and forecast in parallel
       const [currentResponse, forecastResponse] = await Promise.all([
         axios.get(`${CONFIG.API_BASE_URL}/weather`, {
           params: {
-            q: destination,
+            q: apiQuery,
             appid: this.apiKey,
             units: 'metric',
           },
@@ -245,7 +291,7 @@ class WeatherCacheService {
         }),
         axios.get(`${CONFIG.API_BASE_URL}/forecast`, {
           params: {
-            q: destination,
+            q: apiQuery,
             appid: this.apiKey,
             units: 'metric',
           },

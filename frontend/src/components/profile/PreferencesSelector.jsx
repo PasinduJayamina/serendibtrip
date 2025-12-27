@@ -133,7 +133,7 @@ const PreferencesSelector = ({ preferences, onSave, isLoading }) => {
               }
               className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
                 formData.travelStyle === style.value
-                  ? 'border-[#208896] bg-[#208896]/5 text-[#208896]'
+                  ? 'border-secondary-500 bg-secondary-500/5 text-secondary-500'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
@@ -157,7 +157,7 @@ const PreferencesSelector = ({ preferences, onSave, isLoading }) => {
               onClick={() => toggleArrayItem('favoriteDestinations', dest)}
               className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                 formData.favoriteDestinations?.includes(dest)
-                  ? 'bg-[#208896] text-white'
+                  ? 'bg-secondary-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -224,7 +224,7 @@ const PreferencesSelector = ({ preferences, onSave, isLoading }) => {
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, currency: e.target.value }))
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent"
           >
             {CURRENCIES.map((curr) => (
               <option key={curr.value} value={curr.value}>
@@ -243,7 +243,7 @@ const PreferencesSelector = ({ preferences, onSave, isLoading }) => {
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, language: e.target.value }))
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#208896] focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent"
           >
             {LANGUAGES.map((lang) => (
               <option key={lang} value={lang}>
@@ -259,7 +259,7 @@ const PreferencesSelector = ({ preferences, onSave, isLoading }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-4 py-3 bg-[#208896] text-white rounded-lg hover:bg-[#1a6d78] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />

@@ -530,18 +530,18 @@ const ItineraryPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Page header */}
-      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white">
+      <div className="bg-gradient-to-r from-secondary-600 to-accent-600 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-2">
             <SparklesIcon className="w-8 h-8" />
-            <span className="text-teal-100 font-medium">
+            <span className="text-secondary-100 font-medium">
               AI-Generated Itinerary
             </span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold mb-2">
             Your Trip to {tripSummary.destination}
           </h1>
-          <div className="flex items-center gap-2 text-teal-100">
+          <div className="flex items-center gap-2 text-secondary-100">
             <MapPinIcon className="w-5 h-5" />
             <span>Sri Lanka</span>
           </div>

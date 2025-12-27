@@ -177,7 +177,7 @@ const ItineraryTimeline = ({
       {/* Share toast */}
       {showShareToast && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <div className="flex items-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-lg shadow-lg">
+          <div className="flex items-center gap-2 px-4 py-3 bg-secondary-600 text-white rounded-lg shadow-lg">
             <ClipboardDocumentIcon className="w-5 h-5" />
             <span>Link copied to clipboard!</span>
           </div>
@@ -205,7 +205,7 @@ const ItineraryTimeline = ({
               onClick={() => setIsEditMode(!isEditMode)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
                 isEditMode
-                  ? 'bg-teal-600 text-white shadow-md'
+                  ? 'bg-secondary-600 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -232,7 +232,7 @@ const ItineraryTimeline = ({
 
             <button
               onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-50 text-teal-700 rounded-lg font-medium hover:bg-teal-100 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary-50 text-secondary-700 rounded-lg font-medium hover:bg-secondary-100 transition-colors"
             >
               <ShareIcon className="w-5 h-5" />
               <span className="hidden sm:inline">Share</span>
@@ -241,7 +241,7 @@ const ItineraryTimeline = ({
         </div>
 
         {/* Budget overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gradient-to-r from-secondary-50 to-accent-50 rounded-xl">
           <div className="text-center md:text-left">
             <p className="text-sm text-gray-500 mb-1">Total Budget</p>
             <p className="text-2xl font-bold text-gray-900">
@@ -251,7 +251,7 @@ const ItineraryTimeline = ({
 
           <div className="text-center">
             <p className="text-sm text-gray-500 mb-1">Estimated Spending</p>
-            <p className="text-2xl font-bold text-teal-600">
+            <p className="text-2xl font-bold text-secondary-600">
               {formatCurrency(totalSpent)}
             </p>
           </div>
@@ -277,7 +277,7 @@ const ItineraryTimeline = ({
             <span className="text-gray-500">Budget Usage</span>
             <span
               className={`font-medium ${
-                budgetPercentage > 100 ? 'text-red-600' : 'text-teal-600'
+                budgetPercentage > 100 ? 'text-red-600' : 'text-secondary-600'
               }`}
             >
               {budgetPercentage.toFixed(1)}%
@@ -290,7 +290,7 @@ const ItineraryTimeline = ({
                   ? 'bg-red-500'
                   : budgetPercentage > 80
                   ? 'bg-yellow-500'
-                  : 'bg-gradient-to-r from-teal-400 to-teal-600'
+                  : 'bg-gradient-to-r from-secondary-400 to-secondary-600'
               }`}
               style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
             />
@@ -325,7 +325,7 @@ const ItineraryTimeline = ({
                   onClick={() => scrollToDay(index)}
                   className={`flex flex-col items-center px-4 py-2 rounded-xl transition-all ${
                     activeDay === index
-                      ? 'bg-teal-600 text-white shadow-md'
+                      ? 'bg-secondary-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -386,7 +386,7 @@ const ItineraryTimeline = ({
 
       {/* Best time info */}
       {tripSummary?.bestTimeToVisit && (
-        <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl">
+        <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-accent-50 rounded-2xl">
           <h3 className="text-lg font-semibold text-blue-900 mb-2">
             🌤️ Best Time to Visit
           </h3>

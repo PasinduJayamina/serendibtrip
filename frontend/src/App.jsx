@@ -23,6 +23,7 @@ import AIChatAssistant from './components/AIChatAssistant';
 import { sampleAttractions } from './data/attractions';
 import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
+import { useRecommendationsStore } from './store/recommendationsStore';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
@@ -69,7 +70,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className="bg-white shadow-sm sticky top-0 z-[1100]">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -178,7 +179,7 @@ const Navigation = () => {
                 onClick={() => setShowMobileMenu(false)}
                 className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium ${
                   location.pathname === link.to
-                    ? 'bg-[#208896] text-white'
+                    ? 'bg-secondary-500 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -220,7 +221,7 @@ const Navigation = () => {
                 <Link
                   to="/register"
                   onClick={() => setShowMobileMenu(false)}
-                  className="px-4 py-3 text-center bg-[#208896] text-white rounded-lg font-medium hover:bg-[#1a6d78]"
+                  className="px-4 py-3 text-center bg-secondary-500 text-white rounded-lg font-medium hover:bg-secondary-600"
                 >
                   Get Started
                 </Link>
@@ -294,9 +295,14 @@ function HomePage() {
     navigate('/recommendations', { state: { tripData: formData } });
   };
 
+  // Get clearRecommendations from recommendations store
+  const clearRecommendations = useRecommendationsStore((state) => state.clearRecommendations);
+
   const handleDelete = (tripId) => {
     if (window.confirm('Are you sure you want to delete this trip?')) {
       deleteTrip(tripId);
+      // Also clear cached recommendations when deleting a trip
+      clearRecommendations();
       toast.success('Trip deleted');
     }
   };
@@ -438,7 +444,7 @@ function HomePage() {
                           <span>LKR {trip.budget.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="text-[#208896] font-medium">
+                          <span className="text-secondary-500 font-medium">
                             {trip.tripDuration} days
                           </span>
                         </div>
@@ -448,7 +454,7 @@ function HomePage() {
                         {trip.interests.map((interest) => (
                           <span
                             key={interest}
-                            className="px-2 py-1 bg-[#208896]/10 text-[#208896] rounded-full text-xs"
+                            className="px-2 py-1 bg-secondary-500/10 text-secondary-500 rounded-full text-xs"
                           >
                             {interest}
                           </span>
@@ -462,7 +468,7 @@ function HomePage() {
                             state: { tripData: trip },
                           })
                         }
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#208896] text-white rounded-lg text-sm font-medium hover:bg-[#1a6d78] transition-colors"
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-secondary-500 text-white rounded-lg text-sm font-medium hover:bg-secondary-600 transition-colors"
                       >
                         <Sparkles className="w-4 h-4" />
                         Get AI Recommendations

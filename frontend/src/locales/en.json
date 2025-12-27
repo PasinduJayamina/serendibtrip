@@ -345,5 +345,21 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "contact": "Contact Us"
+  },
+  "settings": {
+    "notificationsSaved": "Notification settings saved!",
+    "saveFailed": "Failed to save settings",
+    "testEmailSent": "Test email sent successfully!",
+    "testEmailFailed": "Failed to send test email",
+    "tripReminders": "Trip Reminders",
+    "tripRemindersDesc": "Get reminded before your trips",
+    "weatherAlerts": "Weather Alerts",
+    "weatherAlertsDesc": "Get weather updates for your trips",
+    "remindMe": "Remind me:",
+    "daysBefore": "{{days}} days before",
+    "dayBefore": "1 day before",
+    "sendTest": "Send test email:",
+    "darkMode": "Dark Mode",
+    "language": "Language"
   }
 }

@@ -257,7 +257,7 @@ const RecommendationPanel = ({
       className={`bg-white rounded-2xl shadow-lg overflow-hidden ${className}`}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
+      <div className="bg-gradient-to-r from-secondary-600 to-accent-600 px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
@@ -267,7 +267,7 @@ const RecommendationPanel = ({
               <h2 className="text-xl font-bold text-white">
                 AI Recommendations
               </h2>
-              <p className="text-purple-200 text-sm">
+              <p className="text-secondary-200 text-sm">
                 {destination
                   ? `Personalized picks for ${destination}`
                   : 'Enter destination to get recommendations'}
@@ -298,7 +298,7 @@ const RecommendationPanel = ({
         {!autoFetch && !recommendations && !loading && destination && (
           <button
             onClick={() => fetchRecommendations()}
-            className="mt-4 w-full py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
+            className="mt-4 w-full py-3 bg-white text-secondary-600 rounded-lg font-semibold hover:bg-secondary-50 transition-colors flex items-center justify-center gap-2"
           >
             <SparklesIcon className="w-5 h-5" />
             Generate AI Recommendations
@@ -319,7 +319,7 @@ const RecommendationPanel = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search recommendations..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none text-sm"
               />
               {searchQuery && (
                 <button
@@ -337,7 +337,7 @@ const RecommendationPanel = ({
                 onClick={() => setShowFilterPanel(!showFilterPanel)}
                 className={`inline-flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium transition-colors ${
                   showFilterPanel || filterType !== 'all'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                    ? 'border-secondary-500 bg-secondary-50 text-secondary-700'
                     : 'border-gray-200 text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -348,7 +348,7 @@ const RecommendationPanel = ({
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
               >
                 {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -370,7 +370,7 @@ const RecommendationPanel = ({
                     onClick={() => setFilterType(option.value)}
                     className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       filterType === option.value
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-secondary-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -390,7 +390,7 @@ const RecommendationPanel = ({
         {loading && (
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-3 py-4">
-              <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-secondary-200 border-t-secondary-600 rounded-full animate-spin" />
               <p className="text-gray-600">
                 Generating personalized recommendations...
               </p>
@@ -413,7 +413,7 @@ const RecommendationPanel = ({
             <p className="text-gray-500 mb-4 max-w-md mx-auto">{error}</p>
             <button
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg font-medium hover:bg-secondary-700 transition-colors"
             >
               <ArrowPathIcon className="w-5 h-5" />
               Try Again
@@ -424,8 +424,8 @@ const RecommendationPanel = ({
         {/* Empty state */}
         {!loading && !error && !recommendations && destination && (
           <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-              <SparklesIcon className="w-8 h-8 text-purple-500" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary-100 rounded-full mb-4">
+              <SparklesIcon className="w-8 h-8 text-secondary-500" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Ready to Explore {destination}?
@@ -463,7 +463,7 @@ const RecommendationPanel = ({
                 {filteredRecommendations.length} recommendations
               </p>
               {favorites.length > 0 && (
-                <span className="text-sm text-purple-600 font-medium">
+                <span className="text-sm text-secondary-600 font-medium">
                   {favorites.length} saved
                 </span>
               )}
@@ -479,7 +479,7 @@ const RecommendationPanel = ({
                       setFilterType('all');
                       setSearchQuery('');
                     }}
-                    className="text-purple-600 hover:underline"
+                    className="text-secondary-600 hover:underline"
                   >
                     Clear filters
                   </button>
@@ -505,11 +505,11 @@ const RecommendationPanel = ({
 
             {/* Trip summary */}
             {recommendations?.tripSummary && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl">
-                <h4 className="font-semibold text-purple-900 mb-2">
+              <div className="mt-6 p-4 bg-gradient-to-r from-secondary-50 to-indigo-50 rounded-xl">
+                <h4 className="font-semibold text-secondary-900 mb-2">
                   ✨ {recommendations.tripSummary.overallTheme}
                 </h4>
-                <p className="text-sm text-purple-700">
+                <p className="text-sm text-secondary-700">
                   {recommendations.tripSummary.bestTimeToVisit}
                 </p>
               </div>

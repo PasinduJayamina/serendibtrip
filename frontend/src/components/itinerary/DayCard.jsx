@@ -94,24 +94,24 @@ const DayCard = ({
     <div className="relative">
       {/* Day connector line */}
       {dayIndex > 0 && (
-        <div className="absolute -top-6 left-6 w-0.5 h-6 bg-gradient-to-b from-teal-200 to-teal-400" />
+        <div className="absolute -top-6 left-6 w-0.5 h-6 bg-gradient-to-b from-secondary-200 to-secondary-400" />
       )}
 
       {/* Day card */}
       <div
         className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 border-2 ${
           isExpanded
-            ? 'border-teal-200'
+            ? 'border-secondary-200'
             : 'border-transparent hover:border-gray-200'
         }`}
       >
         {/* Day header */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full px-6 py-4 flex items-center gap-4 bg-gradient-to-r from-teal-50 to-white hover:from-teal-100 transition-colors"
+          className="w-full px-6 py-4 flex items-center gap-4 bg-gradient-to-r from-secondary-50 to-white hover:from-secondary-100 transition-colors"
         >
           {/* Day number badge */}
-          <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 text-white flex flex-col items-center justify-center shadow-lg">
+          <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-secondary-500 to-secondary-600 text-white flex flex-col items-center justify-center shadow-lg">
             <span className="text-xs font-medium uppercase opacity-90">
               Day
             </span>
@@ -147,9 +147,9 @@ const DayCard = ({
           )}
 
           {/* Day total */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-lg">
-            <CurrencyDollarIcon className="w-5 h-5 text-teal-600" />
-            <span className="text-sm font-semibold text-teal-700">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-secondary-50 rounded-lg">
+            <CurrencyDollarIcon className="w-5 h-5 text-secondary-600" />
+            <span className="text-sm font-semibold text-secondary-700">
               {formatCurrency(totalDayCost)}
             </span>
           </div>
@@ -184,9 +184,9 @@ const DayCard = ({
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-lg">
-                <CurrencyDollarIcon className="w-5 h-5 text-teal-600" />
-                <span className="text-sm font-semibold text-teal-700">
+              <div className="flex items-center gap-2 px-3 py-2 bg-secondary-50 rounded-lg">
+                <CurrencyDollarIcon className="w-5 h-5 text-secondary-600" />
+                <span className="text-sm font-semibold text-secondary-700">
                   {formatCurrency(totalDayCost)}
                 </span>
               </div>
@@ -196,7 +196,7 @@ const DayCard = ({
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => onViewRoute(day)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-secondary-700 bg-secondary-50 hover:bg-secondary-100 rounded-lg transition-colors"
               >
                 <MapIcon className="w-4 h-4" />
                 View Route on Map
@@ -205,7 +205,7 @@ const DayCard = ({
               {isEditMode && (
                 <button
                   onClick={() => onAddActivity(dayIndex)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-secondary-600 hover:bg-secondary-700 rounded-lg transition-colors shadow-sm"
                 >
                   <PlusIcon className="w-4 h-4" />
                   Add Activity
@@ -216,7 +216,7 @@ const DayCard = ({
             {/* Activities timeline */}
             <div className="relative pl-8 space-y-4">
               {/* Timeline line */}
-              <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-300 via-teal-200 to-teal-100" />
+              <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-300 via-secondary-200 to-secondary-100" />
 
               {day.activities?.length > 0 ? (
                 day.activities.map((activity, index) => (
@@ -228,7 +228,7 @@ const DayCard = ({
                     onDragEnd={handleDragEnd}
                     className={`transition-all duration-200 ${
                       dragOverItem === index && draggedItem !== index
-                        ? 'border-t-4 border-teal-400 pt-4'
+                        ? 'border-t-4 border-secondary-400 pt-4'
                         : ''
                     }`}
                   >
@@ -258,7 +258,7 @@ const DayCard = ({
                   {isEditMode && (
                     <button
                       onClick={() => onAddActivity(dayIndex)}
-                      className="mt-2 text-teal-600 hover:text-teal-700 font-medium"
+                      className="mt-2 text-secondary-600 hover:text-secondary-700 font-medium"
                     >
                       + Add your first activity
                     </button>

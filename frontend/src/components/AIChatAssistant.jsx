@@ -143,7 +143,7 @@ const AIChatAssistant = () => {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center group ${
+        className={`fixed bottom-6 right-6 z-[1100] w-14 h-14 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center group ${
           isOpen ? 'hidden' : ''
         }`}
         aria-label="Open AI Chat"
@@ -160,7 +160,7 @@ const AIChatAssistant = () => {
 
       {/* Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-fade-in">
+        <div className="fixed bottom-6 right-6 z-[1100] w-[380px] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-fade-in">
           {/* Header */}
           <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">

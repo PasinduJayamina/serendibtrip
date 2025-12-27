@@ -59,12 +59,12 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#208896]/5 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-sand-50 to-primary-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-[#208896]">SerendibTrip</h1>
+            <h1 className="text-3xl font-bold font-display bg-gradient-to-r from-secondary-600 to-accent-500 bg-clip-text text-transparent">SerendibTrip</h1>
             <p className="text-gray-500 text-sm mt-1">
               {t('common.tagline')}
             </p>
@@ -72,7 +72,7 @@ const RegisterPage = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">{t('auth.createAccountTitle')}</h2>
             <p className="text-gray-500 mt-1">{t('auth.startPlanning')}</p>
@@ -103,7 +103,7 @@ const RegisterPage = () => {
                       message: t('auth.validation.fullNameMinLength'),
                     },
                   })}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                     errors.fullName ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder={t('auth.fullNamePlaceholder')}
@@ -132,7 +132,7 @@ const RegisterPage = () => {
                       message: t('auth.validation.emailInvalid'),
                     },
                   })}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder={t('auth.emailPlaceholder')}
@@ -165,7 +165,7 @@ const RegisterPage = () => {
                       message: t('auth.validation.passwordPattern'),
                     },
                   })}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                     errors.password ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder={t('auth.createPasswordPlaceholder')}
@@ -258,7 +258,7 @@ const RegisterPage = () => {
                     validate: (value) =>
                       value === password || t('auth.validation.passwordsDoNotMatch'),
                   })}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                     errors.confirmPassword
                       ? 'border-red-300'
                       : 'border-gray-300'
@@ -288,7 +288,7 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+              className="w-full py-3 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white rounded-xl font-medium hover:from-secondary-600 hover:to-secondary-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
               {isLoading ? (
                 <>
@@ -319,7 +319,7 @@ const RegisterPage = () => {
             {t('auth.alreadyHaveAccount')}{' '}
             <Link
               to="/login"
-              className="text-[#208896] font-medium hover:underline"
+              className="text-secondary-600 font-medium hover:text-secondary-700 hover:underline"
             >
               {t('auth.signIn')}
             </Link>

@@ -67,7 +67,7 @@ const ProtectedRoute = ({ children }) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-[#208896] animate-spin" />
+          <Loader2 className="w-8 h-8 text-secondary-500 animate-spin" />
           <p className="text-gray-500 text-sm">Verifying session...</p>
         </div>
       </div>

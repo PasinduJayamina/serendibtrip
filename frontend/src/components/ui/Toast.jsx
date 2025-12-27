@@ -80,7 +80,7 @@ export const ToastContainer = ({ toasts, removeToast }) => {
     <div
       aria-live="polite"
       aria-label="Notifications"
-      className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-full max-w-sm"
+      className="fixed top-4 right-4 z-[1200] flex flex-col gap-2 w-full max-w-sm"
     >
       {toasts.map((toast) => (
         <ToastItem

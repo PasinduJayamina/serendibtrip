@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { sendTripReminderEmail, sendWeatherAlertEmail } = require('../services/emailService');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 /**
  * @route   POST /api/notifications/trip-reminder
@@ -92,28 +92,41 @@ router.post('/test', auth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    const testTrip = {
-      destination: 'Kandy',
-      startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      duration: 5,
-      groupSize: 2,
-    };
+    // Use user's first saved trip if available, otherwise use sample trip
+    let tripToUse;
+    if (user.savedTrips && user.savedTrips.length > 0) {
+      const savedTrip = user.savedTrips[0];
+      tripToUse = {
+        destination: savedTrip.destination || 'Sri Lanka',
+        startDate: savedTrip.startDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        duration: savedTrip.duration || 5,
+        groupSize: savedTrip.groupSize || 2,
+      };
+    } else {
+      // Sample trip if no saved trips
+      tripToUse = {
+        destination: 'Sri Lanka',
+        startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        duration: 5,
+        groupSize: 2,
+      };
+    }
 
     if (type === 'weather') {
       await sendWeatherAlertEmail({
         email: user.email,
         userName: user.fullName,
-        trip: testTrip,
+        trip: tripToUse,
         weather: { condition: 'Light Rain', temperature: 24 },
       });
-      res.json({ success: true, message: 'Test weather alert sent to ' + user.email });
+      res.json({ success: true, message: `Test weather alert for ${tripToUse.destination} sent to ${user.email}` });
     } else {
       await sendTripReminderEmail({
         email: user.email,
         userName: user.fullName,
-        trip: testTrip,
+        trip: tripToUse,
       });
-      res.json({ success: true, message: 'Test trip reminder sent to ' + user.email });
+      res.json({ success: true, message: `Test trip reminder for ${tripToUse.destination} sent to ${user.email}` });
     }
   } catch (error) {
     console.error('Test notification error:', error);

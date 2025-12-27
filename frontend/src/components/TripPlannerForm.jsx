@@ -167,7 +167,7 @@ const AutocompleteInput = ({
           className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
             error
               ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:ring-[#208896]'
+              : 'border-gray-300 focus:ring-secondary-500'
           } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
         />
       </div>
@@ -190,7 +190,7 @@ const AutocompleteInput = ({
               onMouseEnter={() => setHighlightedIndex(index)}
               className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${
                 highlightedIndex === index
-                  ? 'bg-[#208896]/10 text-[#208896]'
+                  ? 'bg-secondary-500/10 text-secondary-500'
                   : 'hover:bg-gray-50'
               }`}
             >
@@ -227,7 +227,7 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
             key={interest.id}
             className={`relative flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${
               isSelected
-                ? 'border-[#208896] bg-[#208896]/10 text-[#208896]'
+                ? 'border-secondary-500 bg-secondary-500/10 text-secondary-500'
                 : 'border-gray-200 hover:border-gray-300 bg-white'
             } ${error ? 'border-red-300' : ''}`}
           >
@@ -244,7 +244,7 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
             <span className="text-sm font-medium">{interest.label}</span>
             {isSelected && (
               <Check
-                className="absolute top-1 right-1 w-4 h-4 text-[#208896]"
+                className="absolute top-1 right-1 w-4 h-4 text-secondary-500"
                 aria-hidden="true"
               />
             )}
@@ -429,7 +429,7 @@ const TripPlannerForm = ({ onSubmit }) => {
                 className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   errors.startDate
                     ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-[#208896]'
+                    : 'border-gray-300 focus:ring-secondary-500'
                 } focus:ring-2 focus:border-transparent outline-none transition-all`}
               />
             </div>
@@ -470,7 +470,7 @@ const TripPlannerForm = ({ onSubmit }) => {
                 className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   errors.endDate
                     ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-[#208896]'
+                    : 'border-gray-300 focus:ring-secondary-500'
                 } focus:ring-2 focus:border-transparent outline-none transition-all`}
               />
             </div>
@@ -488,9 +488,9 @@ const TripPlannerForm = ({ onSubmit }) => {
 
         {/* Trip Duration Display */}
         {tripDuration() > 0 && (
-          <div className="bg-[#208896]/5 border border-[#208896]/20 rounded-lg p-4 flex items-center justify-center gap-2">
-            <Calendar className="w-5 h-5 text-[#208896]" />
-            <span className="text-[#208896] font-medium">
+          <div className="bg-secondary-500/5 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
+            <Calendar className="w-5 h-5 text-secondary-500" />
+            <span className="text-secondary-500 font-medium">
               {t('tripPlanner.tripDuration')}: {tripDuration()}{' '}
               {tripDuration() === 1 ? t('tripPlanner.day') : t('tripPlanner.days')}
             </span>
@@ -533,7 +533,7 @@ const TripPlannerForm = ({ onSubmit }) => {
                 className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
                   errors.budget
                     ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-[#208896]'
+                    : 'border-gray-300 focus:ring-secondary-500'
                 } focus:ring-2 focus:border-transparent outline-none transition-all`}
               />
             </div>
@@ -573,7 +573,7 @@ const TripPlannerForm = ({ onSubmit }) => {
                 className={`w-full pl-10 pr-10 py-3 rounded-lg border appearance-none ${
                   errors.groupSize
                     ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-[#208896]'
+                    : 'border-gray-300 focus:ring-secondary-500'
                 } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
               >
                 {GROUP_SIZES.map((size) => (
@@ -601,9 +601,9 @@ const TripPlannerForm = ({ onSubmit }) => {
 
         {/* Budget Per Person Display */}
         {budgetPerPerson() > 0 && (
-          <div className="bg-gradient-to-r from-[#208896]/5 to-[#208896]/10 border border-[#208896]/20 rounded-lg p-4 flex items-center justify-center gap-2">
-            <Wallet className="w-5 h-5 text-[#208896]" />
-            <span className="text-[#208896] font-medium">
+          <div className="bg-gradient-to-r from-secondary-500/5 to-secondary-500/10 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
+            <Wallet className="w-5 h-5 text-secondary-500" />
+            <span className="text-secondary-500 font-medium">
               {t('tripPlanner.budgetPerPerson')}: {formatCurrency(budgetPerPerson())}
             </span>
           </div>
@@ -615,7 +615,7 @@ const TripPlannerForm = ({ onSubmit }) => {
             id="interests-label"
             className="block text-sm font-semibold text-gray-700"
           >
-            <Heart className="w-4 h-4 inline mr-1 text-[#208896]" />
+            <Heart className="w-4 h-4 inline mr-1 text-secondary-500" />
             {t('tripPlanner.interests')} <span className="text-red-500">*</span>
             <span className="font-normal text-gray-500 ml-2">
               ({t('tripPlanner.selectAtLeastOne')})
@@ -654,7 +654,7 @@ const TripPlannerForm = ({ onSubmit }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-4 px-6 rounded-xl bg-[#208896] hover:bg-[#1a6f7a] text-white font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#208896]/30"
+            className="w-full py-4 px-6 rounded-xl bg-secondary-500 hover:bg-[#1a6f7a] text-white font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-secondary-500/30"
           >
             {isSubmitting ? (
               <>

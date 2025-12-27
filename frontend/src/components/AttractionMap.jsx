@@ -225,7 +225,7 @@ const LocateButton = ({ onLocate, isLocating }) => {
       title="Find my location"
     >
       <Locate
-        className={`w-5 h-5 text-[#208896] ${
+        className={`w-5 h-5 text-secondary-500 ${
           isLocating ? 'animate-pulse' : ''
         }`}
       />
@@ -341,7 +341,7 @@ const AttractionMap = ({
             placeholder="Search attractions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
+            className="w-full pl-10 pr-4 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
           />
           {searchQuery && (
             <button
@@ -359,7 +359,7 @@ const AttractionMap = ({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="pl-10 pr-8 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none text-sm appearance-none cursor-pointer min-w-[140px] text-gray-900"
+            className="pl-10 pr-8 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none text-sm appearance-none cursor-pointer min-w-[140px] text-gray-900"
           >
             <option value="all">All Categories</option>
             {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
@@ -378,7 +378,7 @@ const AttractionMap = ({
             onClick={toggleRoute}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-md text-sm font-medium transition-colors ${
               showRoute
-                ? 'bg-[#208896] text-white'
+                ? 'bg-secondary-500 text-white'
                 : 'bg-white/95 text-gray-700 hover:bg-gray-50 border border-gray-200'
             }`}
           >
@@ -427,8 +427,8 @@ const AttractionMap = ({
                 center={[currentUserLocation.lat, currentUserLocation.lng]}
                 radius={100}
                 pathOptions={{
-                  color: '#208896',
-                  fillColor: '#208896',
+                  color: 'secondary-500',
+                  fillColor: 'secondary-500',
                   fillOpacity: 0.2,
                 }}
               />
@@ -440,7 +440,7 @@ const AttractionMap = ({
                   <div style="
                     width: 20px;
                     height: 20px;
-                    background-color: #208896;
+                    background-color: secondary-500;
                     border: 3px solid white;
                     border-radius: 50%;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -467,7 +467,7 @@ const AttractionMap = ({
                 a.coordinates.lng,
               ])}
               pathOptions={{
-                color: '#208896',
+                color: 'secondary-500',
                 weight: 4,
                 opacity: 0.8,
                 dashArray: '10, 10',
@@ -553,7 +553,7 @@ const AttractionMap = ({
                     {attraction.distance !== undefined &&
                       attraction.distance > 0 && (
                         <div className="flex items-center gap-2">
-                          <Navigation className="w-4 h-4 text-[#208896]" />
+                          <Navigation className="w-4 h-4 text-secondary-500" />
                           <span>{attraction.distance.toFixed(1)} km away</span>
                         </div>
                       )}
@@ -562,7 +562,7 @@ const AttractionMap = ({
                   {/* Add to Itinerary Button */}
                   <button
                     onClick={() => handleAddToItinerary(attraction)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#208896] text-white rounded-lg hover:bg-[#1a6f7a] transition-colors text-sm font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-[#1a6f7a] transition-colors text-sm font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     Add to Itinerary

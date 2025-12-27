@@ -90,7 +90,7 @@ const ResetPasswordPage = () => {
   // Success state
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#208896]/10 via-white to-[#208896]/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -103,7 +103,7 @@ const ResetPasswordPage = () => {
           </p>
           <Link
             to="/login"
-            className="inline-block w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors"
+            className="inline-block w-full py-3 bg-secondary-500 text-white rounded-xl font-medium hover:bg-secondary-600 transition-colors"
           >
             {t('resetPassword.goToLogin')}
           </Link>
@@ -115,7 +115,7 @@ const ResetPasswordPage = () => {
   // Error state (invalid/expired token)
   if (status === 'error' && !errorMessage.includes('network')) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#208896]/10 via-white to-[#208896]/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <XCircle className="w-10 h-10 text-red-600" />
@@ -128,7 +128,7 @@ const ResetPasswordPage = () => {
           </p>
           <Link
             to="/login"
-            className="inline-block w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors mb-3"
+            className="inline-block w-full py-3 bg-secondary-500 text-white rounded-xl font-medium hover:bg-secondary-600 transition-colors mb-3"
           >
             {t('resetPassword.goToLogin')}
           </Link>
@@ -142,12 +142,12 @@ const ResetPasswordPage = () => {
 
   // Form state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#208896]/10 via-white to-[#208896]/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#208896]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-[#208896]" />
+          <div className="w-16 h-16 bg-secondary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-secondary-500" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
             {t('resetPassword.title')}
@@ -179,7 +179,7 @@ const ResetPasswordPage = () => {
                 {...register('password', {
                   required: t('resetPassword.passwordRequired'),
                 })}
-                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                   errors.password ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder={t('resetPassword.passwordPlaceholder')}
@@ -231,7 +231,7 @@ const ResetPasswordPage = () => {
                   validate: (value) =>
                     value === password || t('resetPassword.passwordMismatch'),
                 })}
-                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                   errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder={t('resetPassword.confirmPlaceholder')}
@@ -253,7 +253,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={isSubmitting || !allChecksPassed}
-            className="w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-secondary-500 text-white rounded-xl font-medium hover:bg-secondary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
@@ -270,7 +270,7 @@ const ResetPasswordPage = () => {
         <div className="mt-6 text-center">
           <Link
             to="/login"
-            className="text-sm text-[#208896] hover:underline font-medium"
+            className="text-sm text-secondary-500 hover:underline font-medium"
           >
             {t('resetPassword.backToLogin')}
           </Link>

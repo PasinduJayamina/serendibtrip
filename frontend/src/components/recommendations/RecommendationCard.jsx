@@ -127,7 +127,7 @@ const RecommendationCard = ({
           {showActions && (
             <button
               onClick={() => onAddToItinerary?.(recommendation)}
-              className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+              className="p-2 text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors"
               title="Add to itinerary"
             >
               <PlusIcon className="w-5 h-5" />
@@ -139,7 +139,7 @@ const RecommendationCard = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border-2 border-gray-100 hover:border-teal-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div className="bg-white rounded-xl border-2 border-gray-100 hover:border-secondary-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
       {/* Header */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
@@ -189,7 +189,7 @@ const RecommendationCard = ({
           {location && (
             <button
               onClick={handleLocationClick}
-              className="flex items-center gap-1.5 text-gray-500 hover:text-teal-600 transition-colors"
+              className="flex items-center gap-1.5 text-gray-500 hover:text-secondary-600 transition-colors"
             >
               <MapPinIcon className="w-4 h-4" />
               <span className="truncate max-w-[150px]">{location}</span>
@@ -261,14 +261,14 @@ const RecommendationCard = ({
 
             {/* AI Reason */}
             {aiReason && (
-              <div className="p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
+              <div className="p-3 bg-gradient-to-r from-secondary-50 to-blue-50 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <SparklesIcon className="w-4 h-4 text-purple-500" />
-                  <span className="text-xs font-semibold text-purple-700 uppercase tracking-wider">
+                  <SparklesIcon className="w-4 h-4 text-secondary-500" />
+                  <span className="text-xs font-semibold text-secondary-700 uppercase tracking-wider">
                     Why We Recommend
                   </span>
                 </div>
-                <p className="text-sm text-purple-800">{aiReason}</p>
+                <p className="text-sm text-secondary-800">{aiReason}</p>
               </div>
             )}
           </div>
@@ -277,7 +277,7 @@ const RecommendationCard = ({
         {/* Expand/collapse toggle */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 mt-3 text-sm text-teal-600 hover:text-teal-700 font-medium"
+          className="flex items-center gap-1 mt-3 text-sm text-secondary-600 hover:text-secondary-700 font-medium"
         >
           {isExpanded ? (
             <>
@@ -334,7 +334,7 @@ const RecommendationCard = ({
           {/* Add to itinerary button */}
           <button
             onClick={() => onAddToItinerary?.(recommendation)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors text-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg font-medium hover:bg-secondary-700 transition-colors text-sm"
           >
             <PlusIcon className="w-4 h-4" />
             Add to Itinerary

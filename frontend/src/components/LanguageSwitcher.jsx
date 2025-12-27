@@ -84,7 +84,7 @@ const LanguageSwitcher = ({ variant = 'dropdown' }) => {
                 <span className="text-xs text-gray-400">({lang.name})</span>
               </span>
               {i18n.language === lang.code && (
-                <Check className="w-4 h-4 text-[#208896]" />
+                <Check className="w-4 h-4 text-secondary-500" />
               )}
             </button>
           ))}

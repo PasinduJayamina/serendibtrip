@@ -103,7 +103,7 @@ const getOutfitSuggestions = (weather, t) => {
     suggestions.push({
       icon: Droplets,
       text: t('weather.outfit.stayHydrated'),
-      color: 'text-cyan-500',
+      color: 'text-accent-500',
     });
   }
 
@@ -165,7 +165,7 @@ const WeatherError = ({ error, onRetry, t }) => (
     <p className="text-gray-500 text-sm mb-4">{error}</p>
     <button
       onClick={onRetry}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-[#208896] text-white rounded-lg hover:bg-[#1a6f7a] transition-colors"
+      className="inline-flex items-center gap-2 px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-[#1a6f7a] transition-colors"
     >
       <RefreshCw className="w-4 h-4" />
       {t('weather.tryAgain')}
@@ -224,7 +224,7 @@ const WeatherWidget = ({ destinationName }) => {
         </div>
         <button
           onClick={refetch}
-          className="p-2 text-gray-500 hover:text-[#208896] hover:bg-[#208896]/10 rounded-lg transition-colors"
+          className="p-2 text-gray-500 hover:text-secondary-500 hover:bg-secondary-500/10 rounded-lg transition-colors"
           title={t('weather.refreshWeather')}
         >
           <RefreshCw className="w-5 h-5" />
@@ -234,7 +234,7 @@ const WeatherWidget = ({ destinationName }) => {
       {/* Current Weather */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-100">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-[#208896]/10 to-[#208896]/5 rounded-2xl">
+          <div className="p-3 bg-gradient-to-br from-secondary-500/10 to-secondary-500/5 rounded-2xl">
             <WeatherIcon condition={weather.condition} className="w-12 h-12" />
           </div>
           <div>
@@ -263,8 +263,8 @@ const WeatherWidget = ({ destinationName }) => {
           <p className="text-xs text-gray-500 mb-1">{t('weather.humidity')}</p>
           <p className="text-lg font-bold text-gray-800">{weather.humidity}%</p>
         </div>
-        <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 rounded-xl p-4 text-center">
-          <Wind className="w-5 h-5 text-teal-500 mx-auto mb-2" />
+        <div className="bg-gradient-to-br from-secondary-50 to-secondary-100/50 rounded-xl p-4 text-center">
+          <Wind className="w-5 h-5 text-secondary-500 mx-auto mb-2" />
           <p className="text-xs text-gray-500 mb-1">{t('weather.wind')}</p>
           <p className="text-lg font-bold text-gray-800">
             {weather.windSpeed} km/h
@@ -290,7 +290,7 @@ const WeatherWidget = ({ destinationName }) => {
               key={day.date}
               className={`rounded-xl p-3 text-center transition-all ${
                 index === 0
-                  ? 'bg-[#208896]/10 border-2 border-[#208896]/30'
+                  ? 'bg-secondary-500/10 border-2 border-secondary-500/30'
                   : 'bg-gray-50 hover:bg-gray-100'
               }`}
             >
@@ -312,9 +312,9 @@ const WeatherWidget = ({ destinationName }) => {
 
       {/* Outfit Suggestions */}
       {outfitSuggestions.length > 0 && (
-        <div className="bg-gradient-to-r from-[#208896]/5 to-[#208896]/10 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-secondary-500/5 to-secondary-500/10 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <Shirt className="w-4 h-4 text-[#208896]" />
+            <Shirt className="w-4 h-4 text-secondary-500" />
             {t('weather.outfit.title')}
           </h3>
           <div className="space-y-2">

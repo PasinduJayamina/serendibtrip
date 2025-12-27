@@ -345,5 +345,21 @@
     "privacy": "රහස්‍යතා ප්‍රතිපත්තිය",
     "terms": "සේවා නියමයන්",
     "contact": "අප හා සම්බන්ධ වන්න"
+  },
+  "settings": {
+    "notificationsSaved": "දැනුම්දීම් සැකසුම් සුරකින ලදී!",
+    "saveFailed": "සැකසුම් සුරැකීමට අසමත් විය",
+    "testEmailSent": "පරීක්ෂණ ඊමේල් සාර්ථකව යවන ලදී!",
+    "testEmailFailed": "පරීක්ෂණ ඊමේල් යැවීමට අසමත් විය",
+    "tripReminders": "සංචාර මතක්කිරීම්",
+    "tripRemindersDesc": "ඔබේ සංචාරයට පෙර මතක් කිරීම් ලබා ගන්න",
+    "weatherAlerts": "කාලගුණ ඇඟවීම්",
+    "weatherAlertsDesc": "ඔබේ සංචාර සඳහා කාලගුණ යාවත්කාලීන ලබා ගන්න",
+    "remindMe": "මට මතක් කරන්න:",
+    "daysBefore": "දින {{days}}ට පෙර",
+    "dayBefore": "දින 1ට පෙර",
+    "sendTest": "පරීක්ෂණ ඊමේල් යවන්න:",
+    "darkMode": "අඳුරු මාදිලිය",
+    "language": "භාෂාව"
   }
 }

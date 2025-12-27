@@ -99,7 +99,7 @@ const SavedTripsList = ({
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#208896]" />
+                    <MapPin className="w-4 h-4 text-secondary-500" />
                     {trip.destination}
                   </h4>
                   <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
@@ -141,7 +141,7 @@ const SavedTripsList = ({
                 {onView && (
                   <button
                     onClick={() => onView(trip)}
-                    className="flex-1 px-3 py-2 text-sm text-[#208896] hover:bg-[#208896]/5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm text-secondary-500 hover:bg-secondary-500/5 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
                     View

@@ -130,19 +130,19 @@ const RecommendationsPage = () => {
   };
 
   const [destination, setDestination] = useState(() =>
-    getInitialValue('destination', 'destination', 'Kandy')
+    getInitialValue('destination', 'destination', '')
   );
   const [interests, setInterests] = useState(() =>
-    getInitialValue('interests', 'interests', ['culture', 'nature', 'food'])
+    getInitialValue('interests', 'interests', [])
   );
   const [budget, setBudget] = useState(() =>
-    getInitialValue('budget', 'budget', 150000)
+    getInitialValue('budget', 'budget', '')
   );
   const [duration, setDuration] = useState(() =>
-    getInitialValue('tripDuration', 'duration', 4)
+    getInitialValue('tripDuration', 'duration', '')
   );
   const [groupSize, setGroupSize] = useState(() =>
-    getInitialValue('groupSize', 'groupSize', 2)
+    getInitialValue('groupSize', 'groupSize', '')
   );
   const [startDate, setStartDate] = useState(() =>
     getInitialValue('startDate', 'startDate', '')
@@ -257,7 +257,7 @@ const RecommendationsPage = () => {
       {/* Toast notification for added items */}
       {showAddedToast && (
         <div className="fixed top-20 right-4 z-50 animate-slide-in">
-          <div className="bg-teal-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+          <div className="bg-secondary-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <CheckCircleIcon className="w-5 h-5" />
             <span className="font-medium">"{lastAddedItem}" {t('recommendations.added')}</span>
             <button
@@ -272,19 +272,23 @@ const RecommendationsPage = () => {
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+      <div className="bg-gradient-to-r from-secondary-600 to-accent-600 text-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-2">
             <SparklesIcon className="w-8 h-8" />
-            <span className="text-purple-200 font-medium">{t('recommendations.aiPowered')}</span>
+            <span className="text-secondary-200 font-medium">{t('recommendations.aiPowered')}</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-            {t('recommendations.title')} - {destination}
+            {destination 
+              ? `${t('recommendations.title')} - ${destination}`
+              : t('recommendations.title')}
           </h1>
-          <p className="text-purple-200">
+          <p className="text-secondary-200">
             {tripData
-              ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')} • LKR ${budget.toLocaleString()}`
-              : t('home.getAiRecommendations')}
+              ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')} • LKR ${budget?.toLocaleString() || 0}`
+              : destination 
+                ? t('home.getAiRecommendations')
+                : t('recommendations.selectDestinationHint') || 'Select a destination to get started'}
           </p>
         </div>
       </div>
@@ -301,14 +305,15 @@ const RecommendationsPage = () => {
               {/* Destination */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <MapPinIcon className="w-4 h-4 text-purple-500" />
+                  <MapPinIcon className="w-4 h-4 text-secondary-500" />
                   {t('tripPlanner.destination')}
                 </label>
                 <select
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
                 >
+                  <option value="">{t('tripPlanner.selectDestination') || 'Select a destination'}</option>
                   {Object.keys(DESTINATIONS).map((dest) => (
                     <option key={dest} value={dest}>
                       {dest}
@@ -320,7 +325,7 @@ const RecommendationsPage = () => {
               {/* Duration */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <CalendarDaysIcon className="w-4 h-4 text-purple-500" />
+                  <CalendarDaysIcon className="w-4 h-4 text-secondary-500" />
                   {t('tripPlanner.duration')} ({t('tripPlanner.days')})
                 </label>
                 <input
@@ -329,14 +334,14 @@ const RecommendationsPage = () => {
                   max="30"
                   value={duration}
                   onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
                 />
               </div>
 
               {/* Group Size */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <UserGroupIcon className="w-4 h-4 text-purple-500" />
+                  <UserGroupIcon className="w-4 h-4 text-secondary-500" />
                   {t('tripPlanner.travelers')}
                 </label>
                 <input
@@ -345,14 +350,14 @@ const RecommendationsPage = () => {
                   max="20"
                   value={groupSize}
                   onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
                 />
               </div>
 
               {/* Budget */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <CurrencyDollarIcon className="w-4 h-4 text-purple-500" />
+                  <CurrencyDollarIcon className="w-4 h-4 text-secondary-500" />
                   {t('tripPlanner.budgetLKR')}
                 </label>
                 <input
@@ -361,7 +366,7 @@ const RecommendationsPage = () => {
                   step="10000"
                   value={budget}
                   onChange={(e) => setBudget(parseInt(e.target.value) || 10000)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   ≈ ${(budget / 300).toFixed(0)} USD
@@ -380,7 +385,7 @@ const RecommendationsPage = () => {
                       onClick={() => toggleInterest(interest.id)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                         interests.includes(interest.id)
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-secondary-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -392,11 +397,11 @@ const RecommendationsPage = () => {
               </div>
 
               {/* Summary */}
-              <div className="p-4 bg-purple-50 rounded-xl">
-                <h3 className="text-sm font-semibold text-purple-800 mb-2">
+              <div className="p-4 bg-secondary-50 rounded-xl">
+                <h3 className="text-sm font-semibold text-secondary-800 mb-2">
                   {t('tripPlanner.tripSummary')}
                 </h3>
-                <ul className="text-sm text-purple-700 space-y-1">
+                <ul className="text-sm text-secondary-700 space-y-1">
                   <li>📍 {destination}</li>
                   <li>📅 {duration} {t('tripPlanner.days')}</li>
                   <li>👥 {groupSize} {t('tripPlanner.travelers')}</li>
@@ -407,31 +412,31 @@ const RecommendationsPage = () => {
 
               {/* Saved Items - From Zustand Store */}
               {savedItems.length > 0 && (
-                <div className="mt-6 p-4 bg-teal-50 rounded-xl">
+                <div className="mt-6 p-4 bg-secondary-50 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-teal-800">
+                    <h3 className="text-sm font-semibold text-secondary-800">
                       {t('recommendations.savedToItinerary')} ({savedItems.length})
                     </h3>
                     <button
                       onClick={handleViewItinerary}
-                      className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                      className="text-xs text-secondary-600 hover:text-secondary-700 font-medium flex items-center gap-1"
                     >
                       {t('common.viewAll')}
                       <ArrowRightIcon className="w-3 h-3" />
                     </button>
                   </div>
-                  <ul className="text-sm text-teal-700 space-y-1 max-h-32 overflow-y-auto">
+                  <ul className="text-sm text-secondary-700 space-y-1 max-h-32 overflow-y-auto">
                     {savedItems.slice(0, 5).map((item, idx) => (
                       <li
                         key={idx}
                         className="truncate flex items-center gap-1"
                       >
-                        <CheckCircleIcon className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                        <CheckCircleIcon className="w-4 h-4 text-secondary-500 flex-shrink-0" />
                         {item.name}
                       </li>
                     ))}
                     {savedItems.length > 5 && (
-                      <li className="text-teal-500 text-xs">
+                      <li className="text-secondary-500 text-xs">
                         +{savedItems.length - 5} more...
                       </li>
                     )}

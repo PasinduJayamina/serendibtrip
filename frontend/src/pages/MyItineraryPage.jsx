@@ -84,10 +84,10 @@ const MyItineraryPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
+        <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
-            <p className="text-teal-200">
+            <p className="text-secondary-200">
               {t('itinerary.buildTrip')}
             </p>
           </div>
@@ -107,7 +107,7 @@ const MyItineraryPage = () => {
             </p>
             <Link
               to="/recommendations"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary-600 to-accent-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               <SparklesIcon className="w-5 h-5" />
               {t('itinerary.browseRecommendations')}
@@ -151,12 +151,12 @@ const MyItineraryPage = () => {
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white">
+      <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
-              <p className="text-teal-200">
+              <p className="text-secondary-200">
                 {t('itinerary.itemsSaved', { count: savedItems.length })}
               </p>
             </div>
@@ -175,13 +175,13 @@ const MyItineraryPage = () => {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="text-2xl font-bold text-teal-600">
+            <div className="text-2xl font-bold text-secondary-600">
               {savedItems.length}
             </div>
             <div className="text-sm text-gray-500">{t('itinerary.totalItems')}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-secondary-600">
               {attractions.length}
             </div>
             <div className="text-sm text-gray-500">{t('itinerary.attractions')}</div>
@@ -208,7 +208,7 @@ const MyItineraryPage = () => {
               className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
             >
               <div className="flex items-center gap-2">
-                <ChartBarIcon className="w-5 h-5 text-teal-600" />
+                <ChartBarIcon className="w-5 h-5 text-secondary-600" />
                 <h3 className="font-semibold text-gray-900">
                   {t('itinerary.budgetTracking')}
                 </h3>
@@ -238,7 +238,7 @@ const MyItineraryPage = () => {
                           ? 'bg-red-500'
                           : expenseSummary.percentageUsed > 70
                           ? 'bg-yellow-500'
-                          : 'bg-teal-500'
+                          : 'bg-secondary-500'
                       }`}
                       style={{
                         width: `${Math.min(
@@ -290,7 +290,7 @@ const MyItineraryPage = () => {
                                   ? 'bg-red-500'
                                   : percentage > 80
                                   ? 'bg-yellow-500'
-                                  : 'bg-teal-500'
+                                  : 'bg-secondary-500'
                               }`}
                               style={{
                                 width: `${Math.min(percentage, 100)}%`,
@@ -305,14 +305,14 @@ const MyItineraryPage = () => {
 
                 {/* Daily Budget Info */}
                 {tripDetails.duration > 0 && (
-                  <div className="flex items-center justify-between text-sm bg-teal-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between text-sm bg-secondary-50 rounded-lg p-3">
                     <div className="flex items-center gap-2">
-                      <BanknotesIcon className="w-4 h-4 text-teal-600" />
-                      <span className="text-teal-800">
+                      <BanknotesIcon className="w-4 h-4 text-secondary-600" />
+                      <span className="text-secondary-800">
                         {t('itinerary.dailyBudget')}:
                       </span>
                     </div>
-                    <span className="font-semibold text-teal-900">
+                    <span className="font-semibold text-secondary-900">
                       {formatCurrency(
                         Math.round(
                           tripDetails.budget /
@@ -332,7 +332,7 @@ const MyItineraryPage = () => {
         {attractions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <MapPinIcon className="w-6 h-6 text-teal-600" />
+              <MapPinIcon className="w-6 h-6 text-secondary-600" />
               {t('itinerary.attractionsActivities')} ({attractions.length})
             </h2>
             <div className="space-y-3">
@@ -455,7 +455,7 @@ const MyItineraryPage = () => {
         <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
           <Link
             to="/recommendations"
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-secondary-600 to-accent-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
           >
             <SparklesIcon className="w-5 h-5" />
             {t('itinerary.addMoreRecommendations')}

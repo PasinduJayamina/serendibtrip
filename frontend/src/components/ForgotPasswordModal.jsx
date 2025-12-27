@@ -94,7 +94,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
             </p>
             <button
               onClick={handleClose}
-              className="w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors"
+              className="w-full py-3 bg-secondary-500 text-white rounded-xl font-medium hover:bg-secondary-600 transition-colors"
             >
               {t('forgotPassword.backToLogin')}
             </button>
@@ -103,8 +103,8 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
           // Form State
           <>
             <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-[#208896]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-7 h-7 text-[#208896]" />
+              <div className="w-14 h-14 bg-secondary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-7 h-7 text-secondary-500" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
                 {t('forgotPassword.title')}
@@ -130,7 +130,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                         message: t('auth.emailAddress'),
                       },
                     })}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#208896] focus:border-transparent outline-none transition-all ${
+                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
                       errors.email ? 'border-red-300' : 'border-gray-300'
                     }`}
                     placeholder={t('forgotPassword.emailPlaceholder')}
@@ -146,7 +146,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 bg-[#208896] text-white rounded-xl font-medium hover:bg-[#1a6d78] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-secondary-500 text-white rounded-xl font-medium hover:bg-secondary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>

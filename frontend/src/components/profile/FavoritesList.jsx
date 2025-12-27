@@ -50,8 +50,8 @@ const FavoritesList = ({ favorites, onRemove, isLoading }) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#208896]/20 to-[#208896]/10">
-                  <MapPin className="w-8 h-8 text-[#208896]" />
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-500/20 to-secondary-500/10">
+                  <MapPin className="w-8 h-8 text-secondary-500" />
                 </div>
               )}
             </div>
@@ -69,7 +69,7 @@ const FavoritesList = ({ favorites, onRemove, isLoading }) => {
               )}
               <div className="flex items-center gap-3 mt-2">
                 {favorite.category && (
-                  <span className="text-xs px-2 py-0.5 bg-[#208896]/10 text-[#208896] rounded-full">
+                  <span className="text-xs px-2 py-0.5 bg-secondary-500/10 text-secondary-500 rounded-full">
                     {favorite.category}
                   </span>
                 )}

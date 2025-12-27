@@ -140,8 +140,8 @@ const UserProfilePage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-[#208896]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <User className="w-10 h-10 text-[#208896]" />
+          <div className="w-20 h-20 bg-secondary-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <User className="w-10 h-10 text-secondary-500" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {t('profile.signInPrompt')}
@@ -152,7 +152,7 @@ const UserProfilePage = () => {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => navigate('/')}
-              className="px-6 py-3 bg-[#208896] text-white rounded-lg hover:bg-[#1a6d78] transition-colors font-medium"
+              className="px-6 py-3 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors font-medium"
             >
               {t('profile.goToHome')}
             </button>
@@ -170,7 +170,7 @@ const UserProfilePage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-[#208896] mx-auto" />
+          <Loader2 className="w-12 h-12 animate-spin text-secondary-500 mx-auto" />
           <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
         </div>
       </div>
@@ -192,7 +192,7 @@ const UserProfilePage = () => {
               clearError();
               fetchProfile();
             }}
-            className="mt-4 px-4 py-2 bg-[#208896] text-white rounded-lg hover:bg-[#1a6d78] transition-colors"
+            className="mt-4 px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors"
           >
             {t('common.tryAgain')}
           </button>
@@ -253,7 +253,7 @@ const UserProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#208896] to-[#1a6d78] text-white">
+      <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Back Button */}
           <button
@@ -318,7 +318,7 @@ const UserProfilePage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#208896] text-[#208896]'
+                    ? 'border-secondary-500 text-secondary-500'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
