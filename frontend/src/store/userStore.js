@@ -3,6 +3,26 @@ import { persist } from 'zustand/middleware';
 import * as userApi from '../services/userApi';
 import * as authApi from '../services/authApi';
 
+// Import other stores to clear on auth changes
+import useTripStore from './tripStore';
+import { useRecommendationsStore } from './recommendationsStore';
+import { useItineraryStore } from './itineraryStore';
+
+/**
+ * Clear all browser-persisted local data
+ * Called when user changes (login/register/logout) to ensure fresh state
+ */
+const clearAllLocalData = () => {
+  // Clear trip store (serendibtrip-store in localStorage)
+  useTripStore.getState().reset();
+  
+  // Clear recommendations store (serendibtrip-recommendations in localStorage)
+  useRecommendationsStore.getState().clearRecommendations();
+  
+  // Clear itinerary store (serendibtrip-itinerary in localStorage)
+  useItineraryStore.getState().clearItinerary();
+};
+
 /**
  * Zustand store for user profile management
  * Persists authentication state to localStorage
@@ -38,6 +58,11 @@ export const useUserStore = create(
             response.data.accessToken,
             response.data.refreshToken
           );
+          
+          // Clear all local data before setting new user
+          // This ensures a fresh start and no leftover data from previous users
+          clearAllLocalData();
+          
           set({
             user: response.data.user,
             isAuthenticated: true,
@@ -67,6 +92,11 @@ export const useUserStore = create(
             response.data.accessToken,
             response.data.refreshToken
           );
+          
+          // Clear all local data for new user
+          // This ensures new accounts start completely fresh
+          clearAllLocalData();
+          
           set({
             user: response.data.user,
             isAuthenticated: true,
@@ -91,6 +121,10 @@ export const useUserStore = create(
 
       logout: () => {
         authApi.clearTokens();
+        
+        // Clear all local data on logout
+        clearAllLocalData();
+        
         set({
           user: null,
           isAuthenticated: false,

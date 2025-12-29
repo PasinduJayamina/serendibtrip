@@ -15,18 +15,24 @@ import {
   StarIcon,
   ChartBarIcon,
   BanknotesIcon,
+  CloudIcon,
+  ShoppingBagIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useItineraryStore } from '../store/itineraryStore';
 import { useRecommendationsStore } from '../store/recommendationsStore';
 import { formatCurrency, CategoryBadge } from '../utils/categoryIcons';
 import { getAllCategories } from '../services/budgetService';
+import WeatherWidget from '../components/WeatherWidget';
+import PackingListGenerator from '../components/PackingListGenerator';
 
 const MyItineraryPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExpenseBreakdown, setShowExpenseBreakdown] = useState(true);
+  const [showWeather, setShowWeather] = useState(true);
+  const [showPackingList, setShowPackingList] = useState(true);
 
   const {
     savedItems,
@@ -323,6 +329,64 @@ const MyItineraryPage = () => {
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Weather Forecast Section */}
+        {tripDetails.destination && (
+          <div className="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+            <button
+              onClick={() => setShowWeather(!showWeather)}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-2">
+                <CloudIcon className="w-5 h-5 text-blue-500" />
+                <h3 className="font-semibold text-gray-900">
+                  Weather Forecast - {tripDetails.destination}
+                </h3>
+              </div>
+              <span className="text-gray-400">
+                {showWeather ? '−' : '+'}
+              </span>
+            </button>
+            {showWeather && (
+              <div className="px-4 pb-4">
+                <WeatherWidget destination={tripDetails.destination} compact />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Smart Packing List Section */}
+        {savedItems.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+            <button
+              onClick={() => setShowPackingList(!showPackingList)}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBagIcon className="w-5 h-5 text-orange-500" />
+                <h3 className="font-semibold text-gray-900">
+                  Smart Packing List
+                </h3>
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                  Auto-generated
+                </span>
+              </div>
+              <span className="text-gray-400">
+                {showPackingList ? '−' : '+'}
+              </span>
+            </button>
+            {showPackingList && (
+              <div className="px-4 pb-4">
+                <PackingListGenerator 
+                  tripDetails={{
+                    ...tripDetails,
+                    interests: savedItems.map(item => item.category).filter(Boolean)
+                  }} 
+                />
               </div>
             )}
           </div>

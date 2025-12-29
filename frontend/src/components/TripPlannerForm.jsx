@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Calendar,
@@ -12,8 +13,10 @@ import {
   ChevronDown,
   Check,
   X,
+  Lock,
 } from 'lucide-react';
 import { useToast } from './ui/Toast';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 // Constants
 const DESTINATIONS = [
@@ -258,8 +261,11 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
 // Main TripPlannerForm Component
 const TripPlannerForm = ({ onSubmit }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const toast = useToast();
+  const { isGuest, isAuthenticated, canUseFeature } = useFeatureAccess();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const defaultEndDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
@@ -328,11 +334,24 @@ const TripPlannerForm = ({ onSubmit }) => {
         budgetPerPerson: budgetPerPerson(),
       };
 
+      // Check AI limit before processing
+      const aiAccess = canUseFeature('aiRecommendations');
+
       if (onSubmit) {
         await onSubmit(formData);
       }
 
-      toast.success('Trip plan created successfully! 🎉');
+      // Only show success messages if AI limit was not reached
+      if (aiAccess.allowed) {
+        if (isGuest) {
+          toast.success('Exploring recommendations! Sign in to save your trip. 🎉');
+          // Show upgrade prompt after a delay
+          setTimeout(() => setShowLoginPrompt(true), 3000);
+        } else {
+          toast.success('Trip plan created successfully! 🎉');
+        }
+      }
+      // If limit was reached, the error toast is shown in App.jsx handleSubmit
     } catch (error) {
       toast.error(
         error.message || 'Failed to create trip plan. Please try again.'
@@ -343,7 +362,76 @@ const TripPlannerForm = ({ onSubmit }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <>
+      {/* Upgrade Prompt Modal for Guests */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowLoginPrompt(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-in">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-5 text-white">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="absolute top-3 right-3 p-1 hover:bg-white/20 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Love What You See?</h3>
+                  <p className="text-sm text-white/80">Save your trip for later</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-gray-600 text-sm mb-4">
+                Create a free account to save this trip and unlock more features:
+              </p>
+              <ul className="text-sm text-gray-600 mb-4 space-y-2">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-secondary-500" />
+                  Save trips & itineraries
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-secondary-500" />
+                  20 AI chats per day
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-secondary-500" />
+                  Personalized packing lists
+                </li>
+              </ul>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowLoginPrompt(false); navigate('/register'); }}
+                  className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
+                >
+                  Create Free Account
+                </button>
+                <button
+                  onClick={() => { setShowLoginPrompt(false); navigate('/login'); }}
+                  className="flex-1 py-2.5 border-2 border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Sign In
+                </button>
+              </div>
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Continue exploring
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full max-w-4xl mx-auto">
       <form
         onSubmit={handleSubmit(processSubmit)}
         className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
@@ -671,6 +759,7 @@ const TripPlannerForm = ({ onSubmit }) => {
         </div>
       </form>
     </div>
+    </>
   );
 };
 

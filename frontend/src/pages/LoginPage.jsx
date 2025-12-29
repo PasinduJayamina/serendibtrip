@@ -37,7 +37,8 @@ const LoginPage = () => {
   });
 
   // Get redirect path from location state or default to home
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || location.state?.from || '/';
+  const redirectMessage = location.state?.message;
 
   const onSubmit = async (data) => {
     try {

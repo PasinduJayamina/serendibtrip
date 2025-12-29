@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   SparklesIcon,
   AdjustmentsHorizontalIcon,
@@ -11,6 +12,8 @@ import {
   Squares2X2Icon,
   ChevronUpDownIcon,
   XMarkIcon,
+  LockClosedIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import RecommendationCard from './RecommendationCard';
 import {
@@ -19,6 +22,7 @@ import {
 } from '../../hooks/useRecommendations';
 import { useRecommendationsStore } from '../../store/recommendationsStore';
 import { generateItinerary } from '../../services/recommendationsApi';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 
 // Loading skeleton component
 const RecommendationSkeleton = () => (
@@ -58,10 +62,19 @@ const RecommendationPanel = ({
   showFilters = true,
   maxResults,
   className = '',
+  allowGenerate = true, // If false, disables manual generate button (must come from trip planner)
 }) => {
+  const navigate = useNavigate();
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Feature access control for guests
+  const { isGuest, isAuthenticated, canUseFeature, recordUsage, getRemainingUsage, getMaxUsage } = useFeatureAccess();
+  const aiRecsAccess = canUseFeature('aiRecommendations');
+  const remainingRecs = getRemainingUsage('aiRecommendations');
+  const maxRecs = getMaxUsage('aiRecommendations');
 
   // Zustand store for persistent recommendations
   const {
@@ -112,6 +125,17 @@ const RecommendationPanel = ({
         return storedRecommendations;
       }
 
+      // Check usage limit BEFORE making API call (for both guests and auth users)
+      const access = canUseFeature('aiRecommendations');
+      if (!access.allowed) {
+        if (isGuest) {
+          setShowUpgradeModal(true);
+        } else {
+          setError(`Daily limit reached (${access.reason}). Try again tomorrow.`);
+        }
+        return null;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -120,6 +144,8 @@ const RecommendationPanel = ({
 
         if (response.success) {
           const data = response.data;
+          // Record usage AFTER successful API call
+          recordUsage('aiRecommendations');
           // Save to Zustand store (persisted)
           setRecommendations(data, currentParams);
           setLoading(false);
@@ -295,7 +321,7 @@ const RecommendationPanel = ({
         </div>
 
         {/* Generate button (if not auto-fetch) */}
-        {!autoFetch && !recommendations && !loading && destination && (
+        {!autoFetch && !recommendations && !loading && destination && allowGenerate && (
           <button
             onClick={() => fetchRecommendations()}
             className="mt-4 w-full py-3 bg-white text-secondary-600 rounded-lg font-semibold hover:bg-secondary-50 transition-colors flex items-center justify-center gap-2"
@@ -303,6 +329,21 @@ const RecommendationPanel = ({
             <SparklesIcon className="w-5 h-5" />
             Generate AI Recommendations
           </button>
+        )}
+
+        {/* Message when allowGenerate is false - redirect to Home */}
+        {!autoFetch && !recommendations && !loading && !allowGenerate && (
+          <div className="mt-4 p-4 bg-white/10 rounded-lg text-center">
+            <p className="text-white/90 mb-3">
+              Plan your trip to get AI recommendations
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2 bg-white text-secondary-600 rounded-lg font-semibold hover:bg-secondary-50 transition-colors"
+            >
+              Go to Trip Planner
+            </button>
+          </div>
         )}
       </div>
 
@@ -517,6 +558,68 @@ const RecommendationPanel = ({
           </>
         )}
       </div>
+
+      {/* Guest Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowUpgradeModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-5 text-white">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute top-3 right-3 p-1 hover:bg-white/20 rounded-full"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <LockClosedIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Free Limit Reached</h3>
+                  <p className="text-sm text-white/80">Create an account for more</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-gray-600 text-sm mb-4">
+                You've used your {maxRecs} free AI recommendation. Sign up to get:
+              </p>
+              <ul className="text-sm text-gray-600 mb-4 space-y-2">
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  5 AI recommendations per day
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  Save trips & itineraries
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  Personalized packing lists
+                </li>
+              </ul>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowUpgradeModal(false); navigate('/register'); }}
+                  className="flex-1 py-2.5 bg-secondary-500 text-white rounded-lg font-medium hover:bg-secondary-600"
+                >
+                  Create Free Account
+                </button>
+                <button
+                  onClick={() => { setShowUpgradeModal(false); navigate('/login'); }}
+                  className="flex-1 py-2.5 border-2 border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

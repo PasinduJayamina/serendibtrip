@@ -15,9 +15,11 @@ import {
   ArrowRightIcon,
   CloudIcon,
   MapIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline';
 import { useItineraryStore } from '../store/itineraryStore';
 import { useRecommendationsStore } from '../store/recommendationsStore';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { sampleAttractions } from '../data/attractions';
 
 // Helper: map AI recommendations to AttractionMap format, filling coordinates from sampleAttractions if missing
@@ -107,6 +109,15 @@ const RecommendationsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Feature access control
+  const { isGuest, isAuthenticated, canUseFeature, getRemainingUsage, getMaxUsage, recordUsage } = useFeatureAccess();
+  const aiRecsAccess = canUseFeature('aiRecommendations');
+  const remainingRecs = getRemainingUsage('aiRecommendations');
+  const maxRecs = getMaxUsage('aiRecommendations');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Note: Guests can now access recommendations with limits (1 per session)
 
   // Get trip data from navigation state (from HomePage form)
   const tripData = location.state?.tripData;
@@ -231,6 +242,12 @@ const RecommendationsPage = () => {
 
   // Handle add to itinerary - saves to Zustand store with persistence
   const handleAddToItinerary = (recommendation) => {
+    // Block guests from saving
+    if (isGuest) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (isSaved(recommendation.name)) {
       // Already saved
       return;
@@ -292,6 +309,96 @@ const RecommendationsPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Guest Upgrade Banner */}
+      {isGuest && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <SparklesIcon className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-amber-800 font-medium text-sm">
+                  {remainingRecs > 0 
+                    ? `You have ${remainingRecs} free recommendation${remainingRecs > 1 ? 's' : ''} left`
+                    : 'You\'ve used your free recommendation'}
+                </p>
+                <p className="text-amber-600 text-xs">Sign up for unlimited access</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/register')}
+              className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors flex items-center gap-2"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              Get Full Access
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowUpgradeModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-5 text-white">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute top-3 right-3 p-1 hover:bg-white/20 rounded-full"
+              >
+                <span className="text-xl">×</span>
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <SparklesIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Want More Recommendations?</h3>
+                  <p className="text-sm text-white/80">Create a free account</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-gray-600 text-sm mb-4">
+                You've used your free recommendation. Sign up to get:
+              </p>
+              <ul className="text-sm text-gray-600 mb-4 space-y-2">
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  5 AI recommendations per day
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  Save attractions to your itinerary
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-secondary-500" />
+                  Personalized packing lists
+                </li>
+              </ul>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowUpgradeModal(false); navigate('/register'); }}
+                  className="flex-1 py-2.5 bg-secondary-500 text-white rounded-lg font-medium hover:bg-secondary-600"
+                >
+                  Create Free Account
+                </button>
+                <button
+                  onClick={() => { setShowUpgradeModal(false); navigate('/login'); }}
+                  className="flex-1 py-2.5 border-2 border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -530,6 +637,7 @@ const RecommendationsPage = () => {
               onAddToItinerary={handleAddToItinerary}
               autoFetch={!!tripData}
               showFilters={true}
+              allowGenerate={!!tripData || hasStoredRecommendations()}
             />
           </div>
         </div>

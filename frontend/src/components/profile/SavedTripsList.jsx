@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import {
   Calendar,
@@ -42,6 +43,8 @@ const SavedTripsList = ({
   onUpdateStatus,
   isLoading,
 }) => {
+  // Track which trip is being confirmed for deletion
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -169,21 +172,35 @@ const SavedTripsList = ({
                 )}
 
                 {onDelete && (
-                  <button
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          'Are you sure you want to delete this trip?'
-                        )
-                      ) {
-                        onDelete(trip.tripId);
-                      }
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete trip"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  confirmingDeleteId === trip.tripId ? (
+                    // Show confirmation buttons
+                    <div className="flex items-center gap-1 bg-red-50 rounded-lg p-1">
+                      <button
+                        onClick={() => {
+                          onDelete(trip.tripId);
+                          setConfirmingDeleteId(null);
+                        }}
+                        className="px-2 py-1 text-xs text-white bg-red-500 hover:bg-red-600 rounded font-medium"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDeleteId(null)}
+                        className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 rounded font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    // Show trash icon
+                    <button
+                      onClick={() => setConfirmingDeleteId(trip.tripId)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete trip"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )
                 )}
               </div>
             </div>

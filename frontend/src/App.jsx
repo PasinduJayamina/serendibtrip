@@ -21,22 +21,16 @@ import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AIChatAssistant from './components/AIChatAssistant';
 import { sampleAttractions } from './data/attractions';
-import useTripStore from './store/tripStore';
 import { useUserStore } from './store/userStore';
-import { useRecommendationsStore } from './store/recommendationsStore';
+import { useFeatureAccess } from './hooks/useFeatureAccess';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
 import {
-  Trash2,
-  MapPin,
-  Calendar,
-  Users,
-  Wallet,
   CloudSun,
   Map,
   Route as RouteIcon,
   Home,
+  Calendar,
   Sparkles,
   User,
   LogIn,
@@ -137,6 +131,11 @@ const Navigation = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2 ml-2">
+                {/* Guest Mode Badge */}
+                <span className="hidden lg:flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                  Guest
+                </span>
                 <Link
                   to="/login"
                   className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
@@ -253,28 +252,45 @@ function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
-  const addTrip = useTripStore((state) => state.addTrip);
-  const deleteTrip = useTripStore((state) => state.deleteTrip);
-  const trips = useTripStore((state) => state.trips);
-  const { isAuthenticated, saveTrip } = useUserStore();
+  
+  // Use userStore as single source of truth for trips
+  const { 
+    isAuthenticated, 
+    saveTrip, 
+    trips, 
+    fetchTrips 
+  } = useUserStore();
+
+  // Feature access to check AI recommendation limits
+  const { canUseFeature, isGuest } = useFeatureAccess();
 
   // State for selected destination weather
   const [selectedDestination, setSelectedDestination] = useState('colombo');
 
-  // Sort trips in component with useMemo to avoid infinite loop
-  const sortedTrips = useMemo(() => {
-    return [...trips].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [trips]);
+  // Fetch trips when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchTrips().catch(console.error);
+    }
+  }, [isAuthenticated, fetchTrips]);
 
   const handleSubmit = async (formData) => {
-    // Save to local Zustand store
-    const tripId = addTrip(formData);
-    console.log('Trip saved with ID:', tripId);
+    // Check AI recommendation limit BEFORE saving trip
+    const aiAccess = canUseFeature('aiRecommendations');
+    
+    if (!aiAccess.allowed) {
+      // Limit reached - don't save trip, show error
+      if (isGuest) {
+        toast.error('Sign in to get more AI recommendations!');
+      } else {
+        toast.error('Daily AI recommendation limit reached. Try again tomorrow!');
+      }
+      // Still navigate to show the limit message
+      navigate('/recommendations', { state: { tripData: formData } });
+      return;
+    }
 
-    // If authenticated, also save to user's profile
+    // Only save trip for authenticated users (if limit not reached)
     if (isAuthenticated) {
       try {
         await saveTrip({
@@ -287,24 +303,13 @@ function HomePage() {
         });
         toast.success('Trip saved to your profile!');
       } catch (error) {
-        console.error('Failed to save trip to profile:', error);
+        console.error('Failed to save trip:', error);
+        toast.error('Failed to save trip. Please try again.');
       }
     }
 
     // Navigate to AI recommendations
     navigate('/recommendations', { state: { tripData: formData } });
-  };
-
-  // Get clearRecommendations from recommendations store
-  const clearRecommendations = useRecommendationsStore((state) => state.clearRecommendations);
-
-  const handleDelete = (tripId) => {
-    if (window.confirm('Are you sure you want to delete this trip?')) {
-      deleteTrip(tripId);
-      // Also clear cached recommendations when deleting a trip
-      clearRecommendations();
-      toast.success('Trip deleted');
-    }
   };
 
   return (
@@ -394,98 +399,29 @@ function HomePage() {
           />
         </div>
 
-        {/* Saved Trips Section */}
-        {sortedTrips.length > 0 && (
+        {/* Saved Trips Quick Access - Links to Profile for management */}
+        {isAuthenticated && trips.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {t('home.savedTrips')} ({sortedTrips.length})
-            </h2>
-            <div className="grid gap-4">
-              {sortedTrips.map((trip) => (
-                <div
-                  key={trip.id}
-                  className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPin className="w-5 h-5 text-secondary-500" />
-                        <h3 className="text-xl font-semibold text-gray-800">
-                          {trip.destination}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            trip.status === 'draft'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {trip.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span>
-                            {format(new Date(trip.startDate), 'MMM d')} -{' '}
-                            {format(new Date(trip.endDate), 'MMM d, yyyy')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span>
-                            {trip.groupSize}{' '}
-                            {trip.groupSize === 1 ? 'person' : 'people'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Wallet className="w-4 h-4 text-gray-400" />
-                          <span>LKR {trip.budget.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-secondary-500 font-medium">
-                            {trip.tripDuration} days
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {trip.interests.map((interest) => (
-                          <span
-                            key={interest}
-                            className="px-2 py-1 bg-secondary-500/10 text-secondary-500 rounded-full text-xs"
-                          >
-                            {interest}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Continue Planning Button */}
-                      <button
-                        onClick={() =>
-                          navigate('/recommendations', {
-                            state: { tripData: trip },
-                          })
-                        }
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-secondary-500 text-white rounded-lg text-sm font-medium hover:bg-secondary-600 transition-colors"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        Get AI Recommendations
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => handleDelete(trip.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete trip"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+            <Link
+              to="/profile"
+              state={{ activeTab: 'trips' }}
+              className="block bg-gradient-to-r from-secondary-500 to-accent-500 rounded-xl p-6 text-white hover:shadow-lg transition-shadow group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                    <Calendar className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">{trips.length} Saved Trip{trips.length !== 1 ? 's' : ''}</h3>
+                    <p className="text-white/80 text-sm">View and manage in your profile</p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-white/80 group-hover:text-white transition-colors">
+                  <span className="text-sm font-medium">Manage Trips →</span>
+                </div>
+              </div>
+            </Link>
           </div>
         )}
 
