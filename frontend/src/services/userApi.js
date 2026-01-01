@@ -121,6 +121,15 @@ export const deleteTrip = async (tripId) => {
   return response.data;
 };
 
+/**
+ * Update just the savedItems for a specific trip
+ * Used to sync itinerary items to backend
+ */
+export const updateTripSavedItems = async (tripId, savedItems) => {
+  const response = await api.put(`/users/trips/${tripId}`, { savedItems });
+  return response.data;
+};
+
 // ============ REVIEWS ============
 
 /**

@@ -259,13 +259,14 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
 };
 
 // Main TripPlannerForm Component
-const TripPlannerForm = ({ onSubmit }) => {
+const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const { isGuest, isAuthenticated, canUseFeature } = useFeatureAccess();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [dateOverlapError, setDateOverlapError] = useState(null);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const defaultEndDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
@@ -325,9 +326,46 @@ const TripPlannerForm = ({ onSubmit }) => {
     }
   }, [watchStartDate, watchEndDate, setValue]);
 
+  // Check if new trip dates overlap with existing trips
+  const checkDateOverlap = (startDate, endDate) => {
+    if (!existingTrips || existingTrips.length === 0) return null;
+    
+    const newStart = new Date(startDate);
+    const newEnd = new Date(endDate);
+    
+    for (const trip of existingTrips) {
+      const existingStart = new Date(trip.startDate);
+      const existingEnd = new Date(trip.endDate);
+      
+      // Check for overlap: new trip starts before existing ends AND new trip ends after existing starts
+      if (newStart <= existingEnd && newEnd >= existingStart) {
+        return {
+          destination: trip.destination,
+          startDate: format(existingStart, 'MMM d'),
+          endDate: format(existingEnd, 'MMM d, yyyy'),
+        };
+      }
+    }
+    return null;
+  };
+
   const processSubmit = async (data) => {
     setIsSubmitting(true);
+    setDateOverlapError(null);
+    
     try {
+      // Check for date overlap (only for authenticated users)
+      if (isAuthenticated && existingTrips.length > 0) {
+        const overlap = checkDateOverlap(data.startDate, data.endDate);
+        if (overlap) {
+          setDateOverlapError(
+            `You already have a trip to ${overlap.destination} from ${overlap.startDate} - ${overlap.endDate}. Please choose different dates.`
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
       const formData = {
         ...data,
         tripDuration: tripDuration(),
@@ -736,6 +774,16 @@ const TripPlannerForm = ({ onSubmit }) => {
             </p>
           )}
         </div>
+
+        {/* Date Overlap Error */}
+        {dateOverlapError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-700 text-sm font-medium flex items-center gap-2">
+              <X className="w-4 h-4" />
+              {dateOverlapError}
+            </p>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div className="pt-4">

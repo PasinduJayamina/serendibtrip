@@ -3,20 +3,17 @@ import { persist } from 'zustand/middleware';
 
 /**
  * Zustand store for AI recommendations
- * Persists to localStorage so recommendations survive page navigation and refresh
- * Recommendations remain until user explicitly changes inputs
+ * Now caches recommendations PER DESTINATION so each trip has its own cache
+ * Recommendations persist until user explicitly refreshes or 24 hours pass
  */
 export const useRecommendationsStore = create(
   persist(
     (set, get) => ({
-      // Current recommendations data
-      recommendations: null,
+      // Cache of recommendations by destination (key = destination name lowercase)
+      recommendationsByDestination: {},
 
-      // Parameters used to generate current recommendations
-      params: null,
-
-      // Timestamp of when recommendations were fetched
-      fetchedAt: null,
+      // Current active destination (for backward compatibility)
+      currentDestination: null,
 
       // Loading state
       loading: false,
@@ -26,14 +23,22 @@ export const useRecommendationsStore = create(
 
       // ============ ACTIONS ============
 
-      // Set recommendations
-      setRecommendations: (data, params) =>
-        set({
-          recommendations: data,
-          params: params,
-          fetchedAt: Date.now(),
+      // Set recommendations for a specific destination
+      setRecommendations: (data, params) => {
+        const destination = params.destination?.toLowerCase() || 'default';
+        set((state) => ({
+          recommendationsByDestination: {
+            ...state.recommendationsByDestination,
+            [destination]: {
+              recommendations: data,
+              params: params,
+              fetchedAt: Date.now(),
+            },
+          },
+          currentDestination: destination,
           error: null,
-        }),
+        }));
+      },
 
       // Set loading state
       setLoading: (loading) => set({ loading }),
@@ -41,23 +46,82 @@ export const useRecommendationsStore = create(
       // Set error
       setError: (error) => set({ error, loading: false }),
 
-      // Clear recommendations
+      // Clear recommendations for a specific destination
+      clearRecommendationsForDestination: (destination) => {
+        const key = destination?.toLowerCase() || 'default';
+        set((state) => {
+          const newCache = { ...state.recommendationsByDestination };
+          delete newCache[key];
+          return { recommendationsByDestination: newCache };
+        });
+      },
+
+      // Clear all recommendations
       clearRecommendations: () =>
         set({
-          recommendations: null,
-          params: null,
-          fetchedAt: null,
+          recommendationsByDestination: {},
+          currentDestination: null,
           error: null,
         }),
 
-      // Check if current params match stored params
-      paramsMatch: (newParams) => {
-        const { params } = get();
-        if (!params) return false;
+      // Get cached recommendations for a destination
+      getCachedByDestination: (destination) => {
+        const key = destination?.toLowerCase() || 'default';
+        const cached = get().recommendationsByDestination[key];
+        
+        if (!cached) return null;
+        
+        // Check if still valid (24 hours)
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        if (Date.now() - cached.fetchedAt > TWENTY_FOUR_HOURS) {
+          // Expired, clear it
+          get().clearRecommendationsForDestination(destination);
+          return null;
+        }
+        
+        return cached.recommendations;
+      },
 
-        // Compare key fields
+      // Get params for a destination
+      getParamsByDestination: (destination) => {
+        const key = destination?.toLowerCase() || 'default';
+        return get().recommendationsByDestination[key]?.params || null;
+      },
+
+      // Check if we have valid cached recommendations for a destination
+      hasCachedFor: (destination) => {
+        const cached = get().getCachedByDestination(destination);
+        return cached !== null && cached.length > 0;
+      },
+
+      // Get all cached destinations
+      getCachedDestinations: () => {
+        return Object.keys(get().recommendationsByDestination);
+      },
+
+      // Backward compatibility: get current recommendations
+      get recommendations() {
+        const { currentDestination, recommendationsByDestination } = get();
+        if (!currentDestination) return null;
+        return recommendationsByDestination[currentDestination]?.recommendations || null;
+      },
+
+      // Backward compatibility: get current params
+      get params() {
+        const { currentDestination, recommendationsByDestination } = get();
+        if (!currentDestination) return null;
+        return recommendationsByDestination[currentDestination]?.params || null;
+      },
+
+      // Backward compatibility: Check if current params match stored params
+      paramsMatch: (newParams) => {
+        const key = newParams.destination?.toLowerCase() || 'default';
+        const cached = get().recommendationsByDestination[key];
+        if (!cached?.params) return false;
+
+        const params = cached.params;
         return (
-          params.destination === newParams.destination &&
+          params.destination?.toLowerCase() === newParams.destination?.toLowerCase() &&
           params.duration === newParams.duration &&
           params.budget === newParams.budget &&
           params.groupSize === newParams.groupSize &&
@@ -66,39 +130,42 @@ export const useRecommendationsStore = create(
         );
       },
 
-      // Check if recommendations are still valid (24 hour cache for localStorage)
+      // Backward compatibility: Check if recommendations are still valid
       isValid: () => {
-        const { fetchedAt, recommendations } = get();
-        if (!recommendations || !fetchedAt) return false;
+        const { currentDestination, recommendationsByDestination } = get();
+        if (!currentDestination) return false;
+        const cached = recommendationsByDestination[currentDestination];
+        if (!cached) return false;
 
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-        return Date.now() - fetchedAt < TWENTY_FOUR_HOURS;
+        return Date.now() - cached.fetchedAt < TWENTY_FOUR_HOURS;
       },
 
-      // Get cached recommendations if valid and params match
+      // Backward compatibility: Get cached recommendations if valid and params match
       getCachedRecommendations: (newParams) => {
-        const { recommendations, paramsMatch, isValid } = get();
-
-        if (recommendations && isValid() && paramsMatch(newParams)) {
-          return recommendations;
+        const destination = newParams.destination?.toLowerCase() || 'default';
+        const cached = get().getCachedByDestination(destination);
+        
+        if (cached && get().paramsMatch(newParams)) {
+          return cached;
         }
         return null;
       },
 
-      // Get stored params (for restoring state)
+      // Backward compatibility: Get stored params
       getStoredParams: () => {
         return get().params;
       },
 
-      // Check if we have any stored recommendations
+      // Backward compatibility: Check if we have any stored recommendations
       hasStoredRecommendations: () => {
-        const { recommendations, params } = get();
-        return !!(recommendations && params);
+        const { recommendationsByDestination } = get();
+        return Object.keys(recommendationsByDestination).length > 0;
       },
     }),
     {
       name: 'serendibtrip-recommendations',
-      version: 2,
+      version: 3, // Bumped version for migration
       // Use localStorage for persistence across sessions
     }
   )

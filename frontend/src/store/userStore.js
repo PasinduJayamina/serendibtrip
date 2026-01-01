@@ -9,17 +9,28 @@ import { useRecommendationsStore } from './recommendationsStore';
 import { useItineraryStore } from './itineraryStore';
 
 /**
- * Clear all browser-persisted local data
- * Called when user changes (login/register/logout) to ensure fresh state
+ * Clear browser-persisted cache data (NOT user itinerary data)
+ * Called on login/register to ensure fresh recommendations but preserve saved items
+ * Note: Itinerary is NOT cleared - it should persist with the user
  */
-const clearAllLocalData = () => {
-  // Clear trip store (serendibtrip-store in localStorage)
+const clearCacheOnUserChange = () => {
+  // Clear trip store (serendibtrip-store in localStorage) - this is form cache, ok to clear
   useTripStore.getState().reset();
   
-  // Clear recommendations store (serendibtrip-recommendations in localStorage)
+  // Clear recommendations store (serendibtrip-recommendations in localStorage) - cache, ok to clear
   useRecommendationsStore.getState().clearRecommendations();
   
-  // Clear itinerary store (serendibtrip-itinerary in localStorage)
+  // NOTE: Do NOT clear itinerary store - user's saved items should persist
+  // Itinerary items are associated with tripId (destination-date) which links to user's trips
+};
+
+/**
+ * Clear ALL local data including itinerary
+ * Called ONLY on logout to ensure complete cleanup
+ */
+const clearAllDataOnLogout = () => {
+  useTripStore.getState().reset();
+  useRecommendationsStore.getState().clearRecommendations();
   useItineraryStore.getState().clearItinerary();
 };
 
@@ -61,7 +72,7 @@ export const useUserStore = create(
           
           // Clear all local data before setting new user
           // This ensures a fresh start and no leftover data from previous users
-          clearAllLocalData();
+          clearCacheOnUserChange();
           
           set({
             user: response.data.user,
@@ -95,7 +106,7 @@ export const useUserStore = create(
           
           // Clear all local data for new user
           // This ensures new accounts start completely fresh
-          clearAllLocalData();
+          clearCacheOnUserChange();
           
           set({
             user: response.data.user,
@@ -122,8 +133,8 @@ export const useUserStore = create(
       logout: () => {
         authApi.clearTokens();
         
-        // Clear all local data on logout
-        clearAllLocalData();
+        // Clear all local data on logout (including itinerary)
+        clearAllDataOnLogout();
         
         set({
           user: null,
@@ -249,11 +260,36 @@ export const useUserStore = create(
         set({ tripsLoading: true });
         try {
           const response = await userApi.getTrips();
+          const trips = response.data;
           set({
-            trips: response.data,
+            trips: trips,
             tripsLoading: false,
           });
-          return response.data;
+          
+          // Also load savedItems from trips into itineraryStore
+          // This enables persistence of itinerary items across logins
+          const itineraryStore = useItineraryStore.getState();
+          const allSavedItems = [];
+          trips.forEach(trip => {
+            if (trip.savedItems && trip.savedItems.length > 0) {
+              trip.savedItems.forEach(item => {
+                // Add tripId to each item if not present
+                allSavedItems.push({
+                  ...item,
+                  tripId: item.tripId || `${trip.destination}-${trip.startDate}`.toLowerCase().replace(/\s+/g, '-'),
+                });
+              });
+            }
+          });
+          
+          // Only set if we have items from backend that aren't already in store
+          if (allSavedItems.length > 0 && itineraryStore.savedItems.length === 0) {
+            // Import savedItems by setting them directly (we'll add a setter for this)
+            useItineraryStore.setState({ savedItems: allSavedItems });
+            console.log('Loaded', allSavedItems.length, 'saved items from trips');
+          }
+          
+          return trips;
         } catch (error) {
           set({ tripsLoading: false });
           throw error;

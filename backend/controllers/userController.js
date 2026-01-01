@@ -294,7 +294,7 @@ const removeFavorite = async (req, res) => {
  */
 const saveTrip = async (req, res) => {
   try {
-    const { destination, startDate, endDate, budget, groupSize, itinerary } =
+    const { destination, startDate, endDate, budget, groupSize, itinerary, interests, savedItems } =
       req.body;
 
     const user = await User.findById(req.user.id);
@@ -306,27 +306,54 @@ const saveTrip = async (req, res) => {
       });
     }
 
-    const tripId = `trip_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+    // Generate tripId using destination and startDate (matches frontend format)
+    // Format: <destination>-<startDate> e.g., "colombo-2026-01-02"
+    const tripId = `${destination.toLowerCase().replace(/\s+/g, '-')}-${startDate.split('T')[0]}`;
 
-    user.savedTrips.push({
-      tripId,
-      destination,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      budget,
-      groupSize,
-      itinerary,
-      status: 'planned',
-    });
+    // Check if trip with same ID already exists
+    const existingTripIndex = user.savedTrips.findIndex(t => t.tripId === tripId);
+    
+    if (existingTripIndex !== -1) {
+      // Update existing trip instead of creating duplicate
+      user.savedTrips[existingTripIndex] = {
+        ...user.savedTrips[existingTripIndex],
+        destination,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        budget,
+        groupSize,
+        itinerary,
+        interests: interests || [],
+        savedItems: savedItems || [],
+      };
+    } else {
+      // Create new trip
+      user.savedTrips.push({
+        tripId,
+        destination,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        budget,
+        groupSize,
+        itinerary,
+        interests: interests || [],
+        savedItems: savedItems || [],
+        status: 'planned',
+      });
+    }
 
     await user.save();
+
+    const savedTrip = existingTripIndex !== -1 
+      ? user.savedTrips[existingTripIndex]
+      : user.savedTrips[user.savedTrips.length - 1];
+
+    console.log(`Trip saved: ${tripId} with ${interests?.length || 0} interests`);
 
     res.status(201).json({
       success: true,
       message: 'Trip saved successfully',
-      data: user.savedTrips[user.savedTrips.length - 1],
+      data: savedTrip,
     });
   } catch (error) {
     console.error('Save trip error:', error);
@@ -375,7 +402,7 @@ const getTrips = async (req, res) => {
 const updateTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { status, itinerary } = req.body;
+    const { status, itinerary, savedItems, interests } = req.body;
 
     const user = await User.findById(req.user.id);
 
@@ -386,21 +413,36 @@ const updateTrip = async (req, res) => {
       });
     }
 
-    const tripIndex = user.savedTrips.findIndex(
+    let tripIndex = user.savedTrips.findIndex(
       (trip) => trip.tripId === tripId
     );
 
+    // Fallback: try matching by destination name if exact tripId doesn't match
+    // This handles legacy trips with old tripId format
     if (tripIndex === -1) {
+      const destFromId = tripId.split('-')[0];
+      tripIndex = user.savedTrips.findIndex(
+        (trip) => trip.destination.toLowerCase() === destFromId.toLowerCase()
+      );
+    }
+
+    if (tripIndex === -1) {
+      console.log(`Trip not found for tripId: ${tripId}`);
       return res.status(404).json({
         success: false,
         message: 'Trip not found',
       });
     }
 
+    // Update fields if provided
     if (status) user.savedTrips[tripIndex].status = status;
     if (itinerary) user.savedTrips[tripIndex].itinerary = itinerary;
+    if (savedItems !== undefined) user.savedTrips[tripIndex].savedItems = savedItems;
+    if (interests !== undefined) user.savedTrips[tripIndex].interests = interests;
 
     await user.save();
+
+    console.log(`Trip ${tripId} updated - savedItems: ${savedItems?.length || 0} items`);
 
     res.status(200).json({
       success: true,
