@@ -45,7 +45,7 @@ app.use(helmet({
 // General rate limiter - 100 requests per 15 minutes
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 100, // Production limit
   message: {
     success: false,
     message: 'Too many requests, please try again later.',
@@ -54,10 +54,10 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Strict rate limiter for auth routes - 10 requests per 15 minutes
+// Auth rate limiter - 10 requests per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 10, // Production limit (strict for auth)
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again after 15 minutes.',

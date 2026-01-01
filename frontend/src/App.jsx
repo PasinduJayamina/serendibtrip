@@ -299,7 +299,7 @@ function HomePage() {
           endDate: formData.endDate,
           budget: formData.budget,
           groupSize: formData.groupSize,
-          itinerary: { interests: formData.interests },
+          interests: formData.interests || [], // Save as top-level field
         });
         toast.success('Trip saved to your profile!');
       } catch (error) {
@@ -352,7 +352,7 @@ function HomePage() {
           <p className="text-gray-500 mb-6">
             {t('home.fillDetails')}
           </p>
-          <TripPlannerForm onSubmit={handleSubmit} />
+          <TripPlannerForm onSubmit={handleSubmit} existingTrips={trips} />
         </div>
 
         {/* Weather Widget Section */}

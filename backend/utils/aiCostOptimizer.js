@@ -25,6 +25,8 @@ function generateCacheKey(params) {
     interests: [...(params.interests || [])].sort(),
     budget: Math.round(params.budget / 10000) * 10000, // Round to nearest 10k
     groupSize: params.groupSize,
+    // Include excludes in cache key so refreshes with different excludes get new results
+    exclude: [...(params.exclude || [])].sort(),
   };
   return crypto
     .createHash('md5')
@@ -123,9 +125,15 @@ function createOptimizedItineraryPrompt(tripDetails) {
     budget,
     groupSize,
     interests = [],
+    exclude = [], // Items already saved that should be excluded
   } = tripDetails;
 
   const dailyBudget = Math.round(budget / duration);
+  
+  // Build exclusion instruction if there are items to exclude
+  const excludeInstruction = exclude.length > 0 
+    ? `\n8. IMPORTANT: DO NOT include these places (already saved): ${exclude.join(', ')}`
+    : '';
 
   // Enhanced prompt for better quality recommendations
   return `You are an expert Sri Lanka travel planner with deep local knowledge. Create a ${duration}-day personalized itinerary.
@@ -135,7 +143,7 @@ TRIP DETAILS:
 - Dates: ${startDate} to ${endDate}
 - Budget: LKR ${budget.toLocaleString()} total (~LKR ${dailyBudget.toLocaleString()}/day)
 - Group Size: ${groupSize} people
-- Interests: ${interests.join(', ') || 'general sightseeing'}
+- Interests: ${interests.join(', ') || 'general sightseeing'}${exclude.length > 0 ? `\n- Already Added (EXCLUDE THESE): ${exclude.join(', ')}` : ''}
 
 CRITICAL REQUIREMENTS:
 1. Include ONLY real, verifiable places that exist in ${destination}
@@ -144,7 +152,7 @@ CRITICAL REQUIREMENTS:
 4. Include 4-5 BEST local restaurants (authentic cuisine)
 5. Realistic entry fees and costs in LKR (as of 2024-2025)
 6. Focus on places matching interests: ${interests.join(', ') || 'general'}
-7. Prioritize highly-rated, well-reviewed places
+7. Prioritize highly-rated, well-reviewed places${excludeInstruction}
 
 RESPOND WITH VALID JSON ONLY (no markdown code blocks):
 {

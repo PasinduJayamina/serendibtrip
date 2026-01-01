@@ -21,6 +21,7 @@ import {
   useRecommendationFilters,
 } from '../../hooks/useRecommendations';
 import { useRecommendationsStore } from '../../store/recommendationsStore';
+import { useItineraryStore } from '../../store/itineraryStore';
 import { generateItinerary } from '../../services/recommendationsApi';
 import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 
@@ -76,18 +77,24 @@ const RecommendationPanel = ({
   const remainingRecs = getRemainingUsage('aiRecommendations');
   const maxRecs = getMaxUsage('aiRecommendations');
 
-  // Zustand store for persistent recommendations
+  // Zustand store for persistent recommendations (per-destination caching)
   const {
-    recommendations: storedRecommendations,
-    params: storedParams,
     setRecommendations,
     setLoading: setStoreLoading,
     setError: setStoreError,
-    isValid,
+    getCachedByDestination,
     paramsMatch,
   } = useRecommendationsStore();
+  
+  // Get saved items to filter out from recommendations
+  const { savedItems } = useItineraryStore();
+  
+  // Filter out items that are already saved to itinerary for this destination
+  const savedItemNames = savedItems
+    .filter(item => item.tripId?.toLowerCase().includes(destination?.toLowerCase()))
+    .map(item => item.name?.toLowerCase());
 
-  // Current params
+  // Current params - include excludes so AI doesn't suggest already-saved items
   const currentParams = {
     destination,
     interests,
@@ -96,21 +103,31 @@ const RecommendationPanel = ({
     groupSize,
     startDate,
     endDate,
+    exclude: savedItemNames, // Send saved item names to exclude from AI responses
   };
 
-  // Check if we have valid cached recommendations (relaxed matching - just check destination)
-  // We show cached data if same destination and still within cache TTL
-  const hasValidCache =
-    storedRecommendations &&
-    isValid() &&
-    storedParams?.destination === destination;
-
-  // Check if params exactly match for "Cached" badge
-  const exactMatch = hasValidCache && paramsMatch(currentParams);
-
-  // Use stored recommendations if valid cache exists for this destination
-  const recommendations = hasValidCache ? storedRecommendations : null;
-  const fromCache = exactMatch;
+  // Get cached recommendations for this destination
+  const cachedRecommendations = getCachedByDestination(destination);
+  
+  // Filter cached recommendations to remove already-saved items (for display)
+  const filteredCachedRecommendations = cachedRecommendations ? {
+    topAttractions: (cachedRecommendations.topAttractions || []).filter(
+      rec => !savedItemNames.includes(rec.name?.toLowerCase())
+    ),
+    recommendedRestaurants: (cachedRecommendations.recommendedRestaurants || []).filter(
+      rec => !savedItemNames.includes(rec.name?.toLowerCase())
+    ),
+  } : null;
+  
+  // Check if we have any recommendations after filtering
+  const hasValidCache = filteredCachedRecommendations && 
+    ((filteredCachedRecommendations.topAttractions?.length || 0) + 
+     (filteredCachedRecommendations.recommendedRestaurants?.length || 0)) > 0;
+  
+  // Use filtered cached recommendations
+  const recommendations = hasValidCache ? filteredCachedRecommendations : null;
+  const fromCache = cachedRecommendations && 
+    ((cachedRecommendations.topAttractions?.length || 0) + (cachedRecommendations.recommendedRestaurants?.length || 0)) > 0;
 
   // Fetch recommendations function
   const fetchRecommendations = useCallback(
@@ -167,7 +184,7 @@ const RecommendationPanel = ({
       destination,
       JSON.stringify(currentParams),
       hasValidCache,
-      storedRecommendations,
+      cachedRecommendations,
     ]
   );
 
@@ -252,11 +269,12 @@ const RecommendationPanel = ({
 
   // Auto-fetch recommendations when autoFetch is true and we have a destination
   useEffect(() => {
+    console.log('Auto-fetch check:', { autoFetch, destination, hasRecommendations: !!recommendations, loading, hasValidCache });
     if (autoFetch && destination && !recommendations && !loading) {
+      console.log('Triggering auto-fetch for:', destination);
       fetchRecommendations();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFetch, destination]);
+  }, [autoFetch, destination, recommendations, loading, hasValidCache, fetchRecommendations]);
 
   // Filter type options
   const filterOptions = [
@@ -304,7 +322,7 @@ const RecommendationPanel = ({
           <div className="flex items-center gap-2">
             {hasValidCache && (
               <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full">
-                {exactMatch ? 'Cached' : 'Cached (tap refresh)'}
+                {fromCache ? 'Cached' : 'Cached'}
               </span>
             )}
             <button

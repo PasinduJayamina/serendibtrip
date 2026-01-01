@@ -99,8 +99,17 @@ const savedTripSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    interests: {
+      type: [String],
+      default: [],
+    },
     itinerary: {
       type: mongoose.Schema.Types.Mixed,
+    },
+    // Saved itinerary items for this trip
+    savedItems: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
     },
     status: {
       type: String,

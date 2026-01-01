@@ -119,19 +119,28 @@ const RecommendationsPage = () => {
 
   // Note: Guests can now access recommendations with limits (1 per session)
 
-  // Get trip data from navigation state (from HomePage form)
+  // Get trip data from navigation state (from HomePage form or Itinerary Add More)
   const tripData = location.state?.tripData;
+  const useCache = location.state?.useCache; // If true, use cached recommendations for this trip
+  const isAddMoreMode = location.state?.isAddMoreMode; // If true, lock preferences (from Add More button)
 
   // Get cached params and recommendations from store
   const {
     params: cachedParams,
     isValid,
     hasStoredRecommendations,
-    recommendations: storedRecommendations,
+    getCachedByDestination,
+    hasCachedFor,
+    setLoading: setStoreLoading,
+    recommendationsByDestination,
   } = useRecommendationsStore();
 
-  // Also grab raw recommendations object for map rendering
-  const { recommendations: aiRecommendations } = useRecommendationsStore();
+  // Get current destination's recommendations for map rendering
+  // This ensures backward compatibility with code expecting aiRecommendations
+  const currentDestinationKey = tripData?.destination?.toLowerCase() || cachedParams?.destination?.toLowerCase();
+  const aiRecommendations = currentDestinationKey 
+    ? recommendationsByDestination[currentDestinationKey]?.recommendations 
+    : null;
 
   // Initialize state - priority: tripData > cachedParams > defaults
   const getInitialValue = (tripKey, cachedKey, defaultValue) => {
@@ -139,9 +148,22 @@ const RecommendationsPage = () => {
     if (cachedParams?.[cachedKey] && isValid()) return cachedParams[cachedKey];
     return defaultValue;
   };
+  
+  // Normalize destination to match DESTINATIONS keys (case-insensitive)
+  const normalizeDestination = (dest) => {
+    if (!dest) return '';
+    const destLower = dest.toLowerCase();
+    // Find matching destination key
+    const match = Object.keys(DESTINATIONS).find(key => 
+      key.toLowerCase() === destLower || 
+      key.toLowerCase().includes(destLower) ||
+      destLower.includes(key.toLowerCase().split(' ')[0])
+    );
+    return match || dest; // Return match or original if no match found
+  };
 
   const [destination, setDestination] = useState(() =>
-    getInitialValue('destination', 'destination', '')
+    normalizeDestination(getInitialValue('destination', 'destination', ''))
   );
   const [interests, setInterests] = useState(() =>
     getInitialValue('interests', 'interests', [])
@@ -166,22 +188,23 @@ const RecommendationsPage = () => {
   const [showWeather, setShowWeather] = useState(true);
   const [showMap, setShowMap] = useState(true); // Show map by default
 
-  // Apply trip data when it's available (from HomePage navigation) - override cached
+  // Apply trip data when it's available (from HomePage navigation or Itinerary Add More) - override cached
   useEffect(() => {
     if (tripData) {
-      console.log('Received trip data from home:', tripData);
-      if (tripData.destination) setDestination(tripData.destination);
+      console.log('Received trip data:', tripData, 'useCache:', useCache);
+      if (tripData.destination) setDestination(normalizeDestination(tripData.destination));
       if (tripData.interests) setInterests(tripData.interests);
       if (tripData.budget) setBudget(tripData.budget);
-      if (tripData.tripDuration) setDuration(tripData.tripDuration);
-      if (tripData.groupSize) setGroupSize(tripData.groupSize);
+      // Handle both tripDuration (from form) and duration (from stored trip)
+      if (tripData.tripDuration || tripData.duration) setDuration(tripData.tripDuration || tripData.duration);
+      if (tripData.groupSize || tripData.travelers) setGroupSize(tripData.groupSize || tripData.travelers);
       if (tripData.startDate) setStartDate(tripData.startDate);
       if (tripData.endDate) setEndDate(tripData.endDate);
     }
-  }, [tripData]);
+  }, [tripData, useCache]);
 
   // Zustand store for itinerary
-  const { savedItems, addToSaved, isSaved, setTripDetails } =
+  const { savedItems, addToSavedAndSync, isSaved, setTripDetails } =
     useItineraryStore();
 
   // Get coordinates for current destination
@@ -213,7 +236,10 @@ const RecommendationsPage = () => {
 
   // Update trip details in store when preferences change
   useEffect(() => {
+    // Generate tripId based on destination and start date (unique per trip)
+    const tripId = `${destination}-${calculatedStartDate}`.toLowerCase().replace(/\s+/g, '-');
     setTripDetails({
+      tripId,
       destination,
       startDate: calculatedStartDate,
       endDate: calculatedEndDate,
@@ -253,7 +279,7 @@ const RecommendationsPage = () => {
       return;
     }
 
-    addToSaved(recommendation);
+    addToSavedAndSync(recommendation);
     setLastAddedItem(recommendation.name);
     setShowAddedToast(true);
 
@@ -405,20 +431,32 @@ const RecommendationsPage = () => {
           {/* Preferences Panel */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">
                 {t('recommendations.tripPreferences')}
               </h2>
+              
+              {/* Locked mode info banner */}
+              {isAddMoreMode && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    🔒 <strong>Adding to existing trip</strong> - Preferences are locked. 
+                    Create a new trip from Home if you want different settings.
+                  </p>
+                </div>
+              )}
 
               {/* Destination */}
               <div className="mb-6">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                   <MapPinIcon className="w-4 h-4 text-secondary-500" />
                   {t('tripPlanner.destination')}
+                  {isAddMoreMode && <span className="ml-auto text-xs text-gray-400">🔒 Locked</span>}
                 </label>
                 <select
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                 >
                   <option value="">{t('tripPlanner.selectDestination') || 'Select a destination'}</option>
                   {Object.keys(DESTINATIONS).map((dest) => (
@@ -441,7 +479,8 @@ const RecommendationsPage = () => {
                   max="30"
                   value={duration}
                   onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                 />
               </div>
 
@@ -457,7 +496,8 @@ const RecommendationsPage = () => {
                   max="20"
                   value={groupSize}
                   onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                 />
               </div>
 
@@ -473,7 +513,8 @@ const RecommendationsPage = () => {
                   step="10000"
                   value={budget}
                   onChange={(e) => setBudget(parseInt(e.target.value) || 10000)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none"
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   ≈ ${(budget / 300).toFixed(0)} USD
@@ -484,17 +525,19 @@ const RecommendationsPage = () => {
               <div className="mb-6">
                 <label className="text-sm font-medium text-gray-700 mb-3 block">
                   {t('tripPlanner.interests')}
+                  {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒 Locked</span>}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {INTEREST_OPTIONS.map((interest) => (
                     <button
                       key={interest.id}
-                      onClick={() => toggleInterest(interest.id)}
+                      onClick={() => !isAddMoreMode && toggleInterest(interest.id)}
+                      disabled={isAddMoreMode}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                         interests.includes(interest.id)
                           ? 'bg-secondary-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      } ${isAddMoreMode ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       <span>{interest.emoji}</span>
                       {t(`interests.${interest.id}`)}
@@ -517,7 +560,7 @@ const RecommendationsPage = () => {
                 </ul>
               </div>
 
-              {/* Saved Items - From Zustand Store */}
+              {/* Saved Items - Grouped by Trip */}
               {savedItems.length > 0 && (
                 <div className="mt-6 p-4 bg-secondary-50 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
@@ -532,22 +575,33 @@ const RecommendationsPage = () => {
                       <ArrowRightIcon className="w-3 h-3" />
                     </button>
                   </div>
-                  <ul className="text-sm text-secondary-700 space-y-1 max-h-32 overflow-y-auto">
-                    {savedItems.slice(0, 5).map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="truncate flex items-center gap-1"
-                      >
-                        <CheckCircleIcon className="w-4 h-4 text-secondary-500 flex-shrink-0" />
-                        {item.name}
-                      </li>
-                    ))}
-                    {savedItems.length > 5 && (
-                      <li className="text-secondary-500 text-xs">
-                        +{savedItems.length - 5} more...
-                      </li>
-                    )}
-                  </ul>
+                  {/* Group by trip */}
+                  {(() => {
+                    const groupedByTrip = savedItems.reduce((acc, item) => {
+                      const tripDest = item.tripId?.split('-')[0] || destination || 'Trip';
+                      if (!acc[tripDest]) acc[tripDest] = [];
+                      acc[tripDest].push(item);
+                      return acc;
+                    }, {});
+                    return Object.entries(groupedByTrip).map(([tripDest, items]) => (
+                      <div key={tripDest} className="mb-2">
+                        <div className="text-xs font-medium text-secondary-600 mb-1 flex items-center gap-1">
+                          📍 {tripDest} ({items.length})
+                        </div>
+                        <ul className="text-sm text-secondary-700 space-y-0.5 pl-3 max-h-20 overflow-y-auto">
+                          {items.slice(0, 3).map((item, idx) => (
+                            <li key={idx} className="truncate flex items-center gap-1 text-xs">
+                              <CheckCircleIcon className="w-3 h-3 text-secondary-500 flex-shrink-0" />
+                              {item.name}
+                            </li>
+                          ))}
+                          {items.length > 3 && (
+                            <li className="text-secondary-500 text-xs">+{items.length - 3} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
             </div>
@@ -637,7 +691,7 @@ const RecommendationsPage = () => {
               onAddToItinerary={handleAddToItinerary}
               autoFetch={!!tripData}
               showFilters={true}
-              allowGenerate={!!tripData || hasStoredRecommendations()}
+              allowGenerate={!!tripData} // Must create a trip from Home first - saves API costs
             />
           </div>
         </div>

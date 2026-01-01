@@ -18,7 +18,8 @@ import {
   HandThumbDownIcon as ThumbDownSolidIcon,
   StarIcon as StarSolidIcon,
 } from '@heroicons/react/24/solid';
-import { CategoryBadge, formatCurrency } from '../../utils/categoryIcons';
+import { CategoryBadge } from '../../utils/categoryIcons';
+import { getPriceDisplay } from '../../services/pricingService';
 
 const RecommendationCard = ({
   recommendation,
@@ -53,8 +54,8 @@ const RecommendationCard = ({
     tips,
   } = recommendation;
 
-  // Calculate display cost
-  const displayCost = cost || entryFee || estimatedCost || 0;
+  // Calculate display cost using smart pricing
+  const priceDisplay = getPriceDisplay(recommendation);
 
   // Determine category for badge
   const displayCategory = category || type || 'attraction';
@@ -196,19 +197,18 @@ const RecommendationCard = ({
             </button>
           )}
 
-          {/* Cost */}
-          {displayCost > 0 && (
-            <div className="flex items-center gap-1.5 text-gray-500">
-              <CurrencyDollarIcon className="w-4 h-4" />
-              <span>{formatCurrency(displayCost)}</span>
-            </div>
-          )}
-          {displayCost === 0 && (
-            <div className="flex items-center gap-1.5 text-green-600">
-              <CurrencyDollarIcon className="w-4 h-4" />
-              <span className="font-medium">Free</span>
-            </div>
-          )}
+          {/* Cost - Smart pricing display */}
+          <div className="flex items-center gap-1.5">
+            <CurrencyDollarIcon className={`w-4 h-4 ${priceDisplay.isFree ? 'text-green-600' : 'text-gray-500'}`} />
+            <span className={priceDisplay.isFree ? 'font-medium text-green-600' : 'text-gray-600'}>
+              {priceDisplay.text}
+            </span>
+            {priceDisplay.isEstimate && !priceDisplay.isFree && (
+              <span className="text-xs text-gray-400 italic" title="Estimated price - may vary">
+                (Est.)
+              </span>
+            )}
+          </div>
 
           {/* Duration */}
           {duration && (
