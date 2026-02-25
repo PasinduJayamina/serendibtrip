@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { format, differenceInDays, addDays } from 'date-fns';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { format, differenceInDays, addDays } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin,
   Calendar,
@@ -14,47 +14,107 @@ import {
   Check,
   X,
   Lock,
-} from 'lucide-react';
-import { useToast } from './ui/Toast';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
+  Home,
+  Car,
+} from "lucide-react";
+import { useToast } from "./ui/Toast";
+import { useFeatureAccess } from "../hooks/useFeatureAccess";
+import { useItineraryStore } from "../store/itineraryStore";
 
 // Constants
 const DESTINATIONS = [
-  'Colombo',
-  'Kandy',
-  'Galle',
-  'Mirissa',
-  'Nuwara Eliya',
-  'Sigiriya',
-  'Anuradhapura',
-  'Trincomalee',
-  'Ella',
-  'Jaffna',
+  "Colombo",
+  "Kandy",
+  "Galle",
+  "Mirissa",
+  "Nuwara Eliya",
+  "Sigiriya",
+  "Anuradhapura",
+  "Trincomalee",
+  "Ella",
+  "Jaffna",
 ];
 
 const INTERESTS = [
-  { id: 'culture', label: 'Culture', icon: '🏛️' },
-  { id: 'adventure', label: 'Adventure', icon: '🏔️' },
-  { id: 'beach', label: 'Beach', icon: '🏖️' },
-  { id: 'nature', label: 'Nature', icon: '🌿' },
-  { id: 'food', label: 'Food', icon: '🍛' },
-  { id: 'photography', label: 'Photography', icon: '📸' },
-  { id: 'wildlife', label: 'Wildlife', icon: '🐘' },
-  { id: 'history', label: 'History', icon: '📜' },
-  { id: 'shopping', label: 'Shopping', icon: '🛍️' },
-  { id: 'nightlife', label: 'Nightlife', icon: '🌙' },
+  { id: "culture", label: "Culture", icon: "🏛️" },
+  { id: "adventure", label: "Adventure", icon: "🏔️" },
+  { id: "beach", label: "Beach", icon: "🏖️" },
+  { id: "nature", label: "Nature", icon: "🌿" },
+  { id: "food", label: "Food", icon: "🍛" },
+  { id: "photography", label: "Photography", icon: "📸" },
+  { id: "wildlife", label: "Wildlife", icon: "🐘" },
+  { id: "history", label: "History", icon: "📜" },
+  { id: "shopping", label: "Shopping", icon: "🛍️" },
+  { id: "nightlife", label: "Nightlife", icon: "🌙" },
 ];
 
 const GROUP_SIZES = Array.from({ length: 10 }, (_, i) => i + 1);
+
+// Accommodation type options with average costs per night - 2026 PRICES
+const ACCOMMODATION_TYPES = [
+  {
+    id: "budget",
+    label: "Budget (Hostel/Guesthouse)",
+    icon: "🏠",
+    avgCost: 10000,
+    description: "LKR 5,000-15,000/night",
+  },
+  {
+    id: "midrange",
+    label: "Mid-range (3-star Hotel)",
+    icon: "🏨",
+    avgCost: 35000,
+    description: "LKR 15,000-55,000/night",
+  },
+  {
+    id: "luxury",
+    label: "Luxury (4-5 star Resort)",
+    icon: "🏰",
+    avgCost: 110000,
+    description: "LKR 55,000-170,000/night",
+  },
+];
+
+// Transport mode options with average daily costs
+const TRANSPORT_MODES = [
+  {
+    id: "public",
+    label: "Public Transport (Bus/Train)",
+    icon: "🚌",
+    avgCost: 1000,
+    description: "LKR 500-2,000/day",
+  },
+  {
+    id: "tuktuk",
+    label: "Tuk-Tuk (PickMe/Local)",
+    icon: "🛺",
+    avgCost: 3500,
+    description: "LKR 2,000-5,000/day",
+  },
+  {
+    id: "private",
+    label: "Private Car with Driver",
+    icon: "🚗",
+    avgCost: 12000,
+    description: "LKR 8,000-15,000/day",
+  },
+  {
+    id: "mix",
+    label: "Mix (Combination)",
+    icon: "🎯",
+    avgCost: 2500,
+    description: "Flexible based on needs",
+  },
+];
 
 const BUDGET_MIN = 10000;
 const BUDGET_MAX = 500000;
 
 // Utility function for formatting currency
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-LK', {
-    style: 'currency',
-    currency: 'LKR',
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -91,31 +151,31 @@ const AutocompleteInput = ({
 
   const handleKeyDown = (e) => {
     if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
         setIsOpen(true);
       }
       return;
     }
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
         setHighlightedIndex((prev) =>
           prev < filteredSuggestions.length - 1 ? prev + 1 : prev
         );
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
         setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev));
         break;
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         if (highlightedIndex >= 0) {
           onChange(filteredSuggestions[highlightedIndex]);
           setIsOpen(false);
         }
         break;
-      case 'Escape':
+      case "Escape":
         setIsOpen(false);
         break;
       default:
@@ -146,7 +206,7 @@ const AutocompleteInput = ({
           type="text"
           id={id}
           name={name}
-          value={value || ''}
+          value={value || ""}
           onChange={(e) => {
             onChange(e.target.value);
             setIsOpen(true);
@@ -169,8 +229,8 @@ const AutocompleteInput = ({
           }
           className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
             error
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:ring-secondary-500'
+              ? "border-red-500 focus:ring-red-500"
+              : "border-gray-300 focus:ring-secondary-500"
           } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
         />
       </div>
@@ -193,8 +253,8 @@ const AutocompleteInput = ({
               onMouseEnter={() => setHighlightedIndex(index)}
               className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${
                 highlightedIndex === index
-                  ? 'bg-secondary-500/10 text-secondary-500'
-                  : 'hover:bg-gray-50'
+                  ? "bg-secondary-500/10 text-secondary-500"
+                  : "hover:bg-gray-50"
               }`}
             >
               <MapPin className="w-4 h-4" />
@@ -230,16 +290,16 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
             key={interest.id}
             className={`relative flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${
               isSelected
-                ? 'border-secondary-500 bg-secondary-500/10 text-secondary-500'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
-            } ${error ? 'border-red-300' : ''}`}
+                ? "border-secondary-500 bg-secondary-500/10 text-secondary-500"
+                : "border-gray-200 hover:border-gray-300 bg-white"
+            } ${error ? "border-red-300" : ""}`}
           >
             <input
               type="checkbox"
               checked={isSelected}
               onChange={() => toggleInterest(interest.id)}
               className="sr-only"
-              aria-describedby={error ? 'interests-error' : undefined}
+              aria-describedby={error ? "interests-error" : undefined}
             />
             <span className="text-lg" aria-hidden="true">
               {interest.icon}
@@ -259,7 +319,7 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
 };
 
 // Main TripPlannerForm Component
-const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
+const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {} }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -268,8 +328,8 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [dateOverlapError, setDateOverlapError] = useState(null);
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const defaultEndDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
+  const today = format(new Date(), "yyyy-MM-dd");
+  const defaultEndDate = format(addDays(new Date(), 3), "yyyy-MM-dd");
 
   const {
     register,
@@ -280,20 +340,24 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
     setValue,
   } = useForm({
     defaultValues: {
-      destination: '',
+      destination: "",
       startDate: today,
       endDate: defaultEndDate,
       budget: 50000,
       groupSize: 2,
+      accommodationType: "midrange", // Default to mid-range
+      transportMode: "tuktuk", // Default to tuk-tuk (popular choice)
       interests: [],
     },
-    mode: 'onBlur',
+    mode: "onBlur",
   });
 
-  const watchStartDate = watch('startDate');
-  const watchEndDate = watch('endDate');
-  const watchBudget = watch('budget');
-  const watchGroupSize = watch('groupSize');
+  const watchStartDate = watch("startDate");
+  const watchEndDate = watch("endDate");
+  const watchBudget = watch("budget");
+  const watchGroupSize = watch("groupSize");
+  const watchAccommodationType = watch("accommodationType");
+  const watchTransportMode = watch("transportMode");
 
   // Calculate trip duration
   const tripDuration = useCallback(() => {
@@ -319,53 +383,85 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
     if (watchStartDate && watchEndDate) {
       if (new Date(watchEndDate) <= new Date(watchStartDate)) {
         setValue(
-          'endDate',
-          format(addDays(new Date(watchStartDate), 1), 'yyyy-MM-dd')
+          "endDate",
+          format(addDays(new Date(watchStartDate), 1), "yyyy-MM-dd")
         );
       }
     }
   }, [watchStartDate, watchEndDate, setValue]);
 
   // Check if new trip dates overlap with existing trips
+  // Checks BOTH backend trips AND local-only trips (from tripsMetadata)
   const checkDateOverlap = (startDate, endDate) => {
-    if (!existingTrips || existingTrips.length === 0) return null;
-    
     const newStart = new Date(startDate);
     const newEnd = new Date(endDate);
-    
-    for (const trip of existingTrips) {
-      const existingStart = new Date(trip.startDate);
-      const existingEnd = new Date(trip.endDate);
-      
-      // Check for overlap: new trip starts before existing ends AND new trip ends after existing starts
-      if (newStart <= existingEnd && newEnd >= existingStart) {
-        return {
-          destination: trip.destination,
-          startDate: format(existingStart, 'MMM d'),
-          endDate: format(existingEnd, 'MMM d, yyyy'),
-        };
+
+    // 1. Check backend trips
+    if (existingTrips && existingTrips.length > 0) {
+      for (const trip of existingTrips) {
+        if (!trip.startDate || !trip.endDate) continue;
+        const existingStart = new Date(trip.startDate);
+        const existingEnd = new Date(trip.endDate);
+        
+        // Skip trips with invalid dates
+        if (isNaN(existingStart.getTime()) || isNaN(existingEnd.getTime())) continue;
+        
+        if (newStart <= existingEnd && newEnd >= existingStart) {
+          return {
+            destination: trip.destination,
+            startDate: format(existingStart, "MMM d"),
+            endDate: format(existingEnd, "MMM d, yyyy"),
+          };
+        }
       }
     }
+
+    // 2. Check local-only trips (from tripsMetadata in itinerary store)
+    // Only consider trips that have actual saved items (skip ghost/stale metadata)
+    if (localTripsMetadata && Object.keys(localTripsMetadata).length > 0) {
+      const backendTripIds = new Set((existingTrips || []).map(t => t.tripId));
+      // Get saved items to verify which local trips are real (have items)
+      const allSavedItems = useItineraryStore.getState().savedItems || [];
+      const tripIdsWithItems = new Set(allSavedItems.map(item => item.tripId));
+      
+      for (const [tripId, meta] of Object.entries(localTripsMetadata)) {
+        if (backendTripIds.has(tripId)) continue; // Already checked above
+        if (!tripIdsWithItems.has(tripId)) continue; // Skip ghost trips with no items
+        if (!meta.startDate || !meta.endDate) continue;
+        const existingStart = new Date(meta.startDate);
+        const existingEnd = new Date(meta.endDate);
+        
+        // Skip trips with invalid dates
+        if (isNaN(existingStart.getTime()) || isNaN(existingEnd.getTime())) continue;
+        
+        if (newStart <= existingEnd && newEnd >= existingStart) {
+          return {
+            destination: meta.destination || tripId,
+            startDate: format(existingStart, "MMM d"),
+            endDate: format(existingEnd, "MMM d, yyyy"),
+          };
+        }
+      }
+    }
+
     return null;
   };
 
   const processSubmit = async (data) => {
     setIsSubmitting(true);
     setDateOverlapError(null);
-    
+
     try {
-      // Check for date overlap (only for authenticated users)
-      if (isAuthenticated && existingTrips.length > 0) {
-        const overlap = checkDateOverlap(data.startDate, data.endDate);
-        if (overlap) {
-          setDateOverlapError(
-            `You already have a trip to ${overlap.destination} from ${overlap.startDate} - ${overlap.endDate}. Please choose different dates.`
-          );
-          setIsSubmitting(false);
-          return;
-        }
+      // Check for date overlap (against both backend and local trips)
+      const overlap = checkDateOverlap(data.startDate, data.endDate);
+      if (overlap) {
+        setDateOverlapError(
+          `You already have a trip to ${overlap.destination} from ${overlap.startDate} - ${overlap.endDate}. Please choose different dates.`
+        );
+        setIsSubmitting(false);
+        return;
       }
-      
+
       const formData = {
         ...data,
         tripDuration: tripDuration(),
@@ -373,7 +469,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
       };
 
       // Check AI limit before processing
-      const aiAccess = canUseFeature('aiRecommendations');
+      const aiAccess = canUseFeature("aiRecommendations");
 
       if (onSubmit) {
         await onSubmit(formData);
@@ -382,17 +478,19 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
       // Only show success messages if AI limit was not reached
       if (aiAccess.allowed) {
         if (isGuest) {
-          toast.success('Exploring recommendations! Sign in to save your trip. 🎉');
+          toast.success(
+            "Exploring recommendations! Sign in to save your trip. 🎉"
+          );
           // Show upgrade prompt after a delay
           setTimeout(() => setShowLoginPrompt(true), 3000);
         } else {
-          toast.success('Trip plan created successfully! 🎉');
+          toast.success("Trip plan created successfully! 🎉");
         }
       }
       // If limit was reached, the error toast is shown in App.jsx handleSubmit
     } catch (error) {
       toast.error(
-        error.message || 'Failed to create trip plan. Please try again.'
+        error.message || "Failed to create trip plan. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -404,7 +502,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
       {/* Upgrade Prompt Modal for Guests */}
       {showLoginPrompt && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowLoginPrompt(false)}
           />
@@ -422,13 +520,16 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
                 </div>
                 <div>
                   <h3 className="font-bold">Love What You See?</h3>
-                  <p className="text-sm text-white/80">Save your trip for later</p>
+                  <p className="text-sm text-white/80">
+                    Save your trip for later
+                  </p>
                 </div>
               </div>
             </div>
             <div className="p-5">
               <p className="text-gray-600 text-sm mb-4">
-                Create a free account to save this trip and unlock more features:
+                Create a free account to save this trip and unlock more
+                features:
               </p>
               <ul className="text-sm text-gray-600 mb-4 space-y-2">
                 <li className="flex items-center gap-2">
@@ -446,13 +547,19 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
               </ul>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setShowLoginPrompt(false); navigate('/register'); }}
+                  onClick={() => {
+                    setShowLoginPrompt(false);
+                    navigate("/register");
+                  }}
                   className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
                 >
                   Create Free Account
                 </button>
                 <button
-                  onClick={() => { setShowLoginPrompt(false); navigate('/login'); }}
+                  onClick={() => {
+                    setShowLoginPrompt(false);
+                    navigate("/login");
+                  }}
                   className="flex-1 py-2.5 border-2 border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50"
                 >
                   Sign In
@@ -470,343 +577,429 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [] }) => {
       )}
 
       <div className="w-full max-w-4xl mx-auto">
-      <form
-        onSubmit={handleSubmit(processSubmit)}
-        className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
-        noValidate
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-            {t('tripPlanner.title')}
-          </h2>
-          <p className="text-gray-500 mt-2">
-            {t('tripPlanner.subtitle')}
-          </p>
-        </div>
+        <form
+          onSubmit={handleSubmit(processSubmit)}
+          className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
+          noValidate
+        >
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
+              {t("tripPlanner.title")}
+            </h2>
+            <p className="text-gray-500 mt-2">{t("tripPlanner.subtitle")}</p>
+          </div>
 
-        {/* Destination Field */}
-        <div className="space-y-2">
-          <label
-            htmlFor="destination"
-            className="block text-sm font-semibold text-gray-700"
-          >
-            {t('tripPlanner.destination')} <span className="text-red-500">*</span>
-          </label>
-          <Controller
-            name="destination"
-            control={control}
-            rules={{
-              required: t('tripPlanner.validation.destinationRequired'),
-              validate: (value) =>
-                DESTINATIONS.some(
-                  (d) => d.toLowerCase() === value.toLowerCase()
-                ) || t('tripPlanner.validation.destinationInvalid'),
-            }}
-            render={({ field }) => (
-              <AutocompleteInput
-                id="destination"
-                name="destination"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                suggestions={DESTINATIONS}
-                placeholder={t('tripPlanner.destinationPlaceholder')}
-                error={errors.destination}
-              />
-            )}
-          />
-          {errors.destination && (
-            <p
-              className="text-red-500 text-sm flex items-center gap-1"
-              role="alert"
+          {/* Destination Field */}
+          <div className="space-y-2">
+            <label
+              htmlFor="destination"
+              className="block text-sm font-semibold text-gray-700"
             >
-              <X className="w-4 h-4" />
-              {errors.destination.message}
-            </p>
+              {t("tripPlanner.destination")}{" "}
+              <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="destination"
+              control={control}
+              rules={{
+                required: t("tripPlanner.validation.destinationRequired"),
+                validate: (value) =>
+                  DESTINATIONS.some(
+                    (d) => d.toLowerCase() === value.toLowerCase()
+                  ) || t("tripPlanner.validation.destinationInvalid"),
+              }}
+              render={({ field }) => (
+                <AutocompleteInput
+                  id="destination"
+                  name="destination"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  suggestions={DESTINATIONS}
+                  placeholder={t("tripPlanner.destinationPlaceholder")}
+                  error={errors.destination}
+                />
+              )}
+            />
+            {errors.destination && (
+              <p
+                className="text-red-500 text-sm flex items-center gap-1"
+                role="alert"
+              >
+                <X className="w-4 h-4" />
+                {errors.destination.message}
+              </p>
+            )}
+          </div>
+
+          {/* Date Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div className="space-y-2">
+              <label
+                htmlFor="startDate"
+                className="block text-sm font-semibold text-gray-700"
+              >
+                {t("tripPlanner.startDate")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Calendar
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  aria-hidden="true"
+                />
+                <input
+                  type="date"
+                  id="startDate"
+                  min={today}
+                  {...register("startDate", {
+                    required: t("tripPlanner.validation.startDateRequired"),
+                    validate: (value) =>
+                      new Date(value) >= new Date(today) ||
+                      t("tripPlanner.validation.startDatePast"),
+                  })}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                    errors.startDate
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-secondary-500"
+                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                />
+              </div>
+              {errors.startDate && (
+                <p
+                  className="text-red-500 text-sm flex items-center gap-1"
+                  role="alert"
+                >
+                  <X className="w-4 h-4" />
+                  {errors.startDate.message}
+                </p>
+              )}
+            </div>
+
+            {/* End Date */}
+            <div className="space-y-2">
+              <label
+                htmlFor="endDate"
+                className="block text-sm font-semibold text-gray-700"
+              >
+                {t("tripPlanner.endDate")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Calendar
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  aria-hidden="true"
+                />
+                <input
+                  type="date"
+                  id="endDate"
+                  min={watchStartDate || today}
+                  {...register("endDate", {
+                    required: t("tripPlanner.validation.endDateRequired"),
+                    validate: {
+                      afterStart: (value) =>
+                        new Date(value) > new Date(watchStartDate) ||
+                        t("tripPlanner.validation.endDateBeforeStart"),
+                      maxDuration: (value) => {
+                        const days = differenceInDays(new Date(value), new Date(watchStartDate));
+                        return days <= 14 || "Trip duration cannot exceed 14 days. For longer trips, please plan in segments.";
+                      }
+                    }
+                  })}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                    errors.endDate
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-secondary-500"
+                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                />
+              </div>
+              {errors.endDate && (
+                <p
+                  className="text-red-500 text-sm flex items-center gap-1"
+                  role="alert"
+                >
+                  <X className="w-4 h-4" />
+                  {errors.endDate.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Trip Duration Display */}
+          {tripDuration() > 0 && (
+            <div className="bg-secondary-500/5 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
+              <Calendar className="w-5 h-5 text-secondary-500" />
+              <span className="text-secondary-500 font-medium">
+                {t("tripPlanner.tripDuration")}: {tripDuration()}{" "}
+                {tripDuration() === 1
+                  ? t("tripPlanner.day")
+                  : t("tripPlanner.days")}
+              </span>
+            </div>
           )}
-        </div>
 
-        {/* Date Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Start Date */}
-          <div className="space-y-2">
-            <label
-              htmlFor="startDate"
-              className="block text-sm font-semibold text-gray-700"
-            >
-              {t('tripPlanner.startDate')} <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Calendar
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                aria-hidden="true"
-              />
-              <input
-                type="date"
-                id="startDate"
-                min={today}
-                {...register('startDate', {
-                  required: t('tripPlanner.validation.startDateRequired'),
-                  validate: (value) =>
-                    new Date(value) >= new Date(today) ||
-                    t('tripPlanner.validation.startDatePast'),
-                })}
-                className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                  errors.startDate
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary-500'
-                } focus:ring-2 focus:border-transparent outline-none transition-all`}
-              />
-            </div>
-            {errors.startDate && (
-              <p
-                className="text-red-500 text-sm flex items-center gap-1"
-                role="alert"
+          {/* Budget and Group Size */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Budget */}
+            <div className="space-y-2">
+              <label
+                htmlFor="budget"
+                className="block text-sm font-semibold text-gray-700"
               >
-                <X className="w-4 h-4" />
-                {errors.startDate.message}
+                {t("tripPlanner.budgetLKR")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Wallet
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  aria-hidden="true"
+                />
+                <input
+                  type="number"
+                  id="budget"
+                  min={BUDGET_MIN}
+                  max={BUDGET_MAX}
+                  step={1000}
+                  {...register("budget", {
+                    required: t("tripPlanner.validation.budgetRequired"),
+                    min: {
+                      value: BUDGET_MIN,
+                      message: t("tripPlanner.validation.budgetMin", {
+                        amount: formatCurrency(BUDGET_MIN),
+                      }),
+                    },
+                    max: {
+                      value: BUDGET_MAX,
+                      message: t("tripPlanner.validation.budgetMax", {
+                        amount: formatCurrency(BUDGET_MAX),
+                      }),
+                    },
+                    valueAsNumber: true,
+                  })}
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                    errors.budget
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-secondary-500"
+                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                />
+              </div>
+              {errors.budget && (
+                <p
+                  className="text-red-500 text-sm flex items-center gap-1"
+                  role="alert"
+                >
+                  <X className="w-4 h-4" />
+                  {errors.budget.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500">
+                {t("tripPlanner.budgetRange")}: {formatCurrency(BUDGET_MIN)} -{" "}
+                {formatCurrency(BUDGET_MAX)}
               </p>
-            )}
-          </div>
-
-          {/* End Date */}
-          <div className="space-y-2">
-            <label
-              htmlFor="endDate"
-              className="block text-sm font-semibold text-gray-700"
-            >
-              {t('tripPlanner.endDate')} <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Calendar
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                aria-hidden="true"
-              />
-              <input
-                type="date"
-                id="endDate"
-                min={watchStartDate || today}
-                {...register('endDate', {
-                  required: t('tripPlanner.validation.endDateRequired'),
-                  validate: (value) =>
-                    new Date(value) > new Date(watchStartDate) ||
-                    t('tripPlanner.validation.endDateBeforeStart'),
-                })}
-                className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                  errors.endDate
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary-500'
-                } focus:ring-2 focus:border-transparent outline-none transition-all`}
-              />
             </div>
-            {errors.endDate && (
-              <p
-                className="text-red-500 text-sm flex items-center gap-1"
-                role="alert"
+
+            {/* Group Size */}
+            <div className="space-y-2">
+              <label
+                htmlFor="groupSize"
+                className="block text-sm font-semibold text-gray-700"
               >
-                <X className="w-4 h-4" />
-                {errors.endDate.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Trip Duration Display */}
-        {tripDuration() > 0 && (
-          <div className="bg-secondary-500/5 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
-            <Calendar className="w-5 h-5 text-secondary-500" />
-            <span className="text-secondary-500 font-medium">
-              {t('tripPlanner.tripDuration')}: {tripDuration()}{' '}
-              {tripDuration() === 1 ? t('tripPlanner.day') : t('tripPlanner.days')}
-            </span>
-          </div>
-        )}
-
-        {/* Budget and Group Size */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Budget */}
-          <div className="space-y-2">
-            <label
-              htmlFor="budget"
-              className="block text-sm font-semibold text-gray-700"
-            >
-              {t('tripPlanner.budgetLKR')} <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Wallet
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                aria-hidden="true"
-              />
-              <input
-                type="number"
-                id="budget"
-                min={BUDGET_MIN}
-                max={BUDGET_MAX}
-                step={1000}
-                {...register('budget', {
-                  required: t('tripPlanner.validation.budgetRequired'),
-                  min: {
-                    value: BUDGET_MIN,
-                    message: t('tripPlanner.validation.budgetMin', { amount: formatCurrency(BUDGET_MIN) }),
-                  },
-                  max: {
-                    value: BUDGET_MAX,
-                    message: t('tripPlanner.validation.budgetMax', { amount: formatCurrency(BUDGET_MAX) }),
-                  },
-                  valueAsNumber: true,
-                })}
-                className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-                  errors.budget
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary-500'
-                } focus:ring-2 focus:border-transparent outline-none transition-all`}
-              />
+                {t("tripPlanner.groupSize")}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Users
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  aria-hidden="true"
+                />
+                <select
+                  id="groupSize"
+                  {...register("groupSize", {
+                    required: t("tripPlanner.validation.groupSizeRequired"),
+                    valueAsNumber: true,
+                  })}
+                  className={`w-full pl-10 pr-10 py-3 rounded-lg border appearance-none ${
+                    errors.groupSize
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:ring-secondary-500"
+                  } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
+                >
+                  {GROUP_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}{" "}
+                      {size === 1
+                        ? t("tripPlanner.person")
+                        : t("tripPlanner.people")}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                  aria-hidden="true"
+                />
+              </div>
+              {errors.groupSize && (
+                <p
+                  className="text-red-500 text-sm flex items-center gap-1"
+                  role="alert"
+                >
+                  <X className="w-4 h-4" />
+                  {errors.groupSize.message}
+                </p>
+              )}
             </div>
-            {errors.budget && (
-              <p
-                className="text-red-500 text-sm flex items-center gap-1"
-                role="alert"
-              >
-                <X className="w-4 h-4" />
-                {errors.budget.message}
-              </p>
-            )}
-            <p className="text-xs text-gray-500">
-              {t('tripPlanner.budgetRange')}: {formatCurrency(BUDGET_MIN)} - {formatCurrency(BUDGET_MAX)}
-            </p>
           </div>
 
-          {/* Group Size */}
-          <div className="space-y-2">
-            <label
-              htmlFor="groupSize"
-              className="block text-sm font-semibold text-gray-700"
-            >
-              {t('tripPlanner.groupSize')} <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Users
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                aria-hidden="true"
-              />
-              <select
-                id="groupSize"
-                {...register('groupSize', {
-                  required: t('tripPlanner.validation.groupSizeRequired'),
-                  valueAsNumber: true,
-                })}
-                className={`w-full pl-10 pr-10 py-3 rounded-lg border appearance-none ${
-                  errors.groupSize
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:ring-secondary-500'
-                } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
-              >
-                {GROUP_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size} {size === 1 ? t('tripPlanner.person') : t('tripPlanner.people')}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
-                aria-hidden="true"
-              />
+          {/* Budget Per Person Display */}
+          {budgetPerPerson() > 0 && (
+            <div className="bg-gradient-to-r from-secondary-500/5 to-secondary-500/10 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
+              <Wallet className="w-5 h-5 text-secondary-500" />
+              <span className="text-secondary-500 font-medium">
+                {t("tripPlanner.budgetPerPerson")}:{" "}
+                {formatCurrency(budgetPerPerson())}
+              </span>
             </div>
-            {errors.groupSize && (
-              <p
-                className="text-red-500 text-sm flex items-center gap-1"
-                role="alert"
-              >
-                <X className="w-4 h-4" />
-                {errors.groupSize.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Budget Per Person Display */}
-        {budgetPerPerson() > 0 && (
-          <div className="bg-gradient-to-r from-secondary-500/5 to-secondary-500/10 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
-            <Wallet className="w-5 h-5 text-secondary-500" />
-            <span className="text-secondary-500 font-medium">
-              {t('tripPlanner.budgetPerPerson')}: {formatCurrency(budgetPerPerson())}
-            </span>
-          </div>
-        )}
-
-        {/* Interests */}
-        <div className="space-y-3">
-          <label
-            id="interests-label"
-            className="block text-sm font-semibold text-gray-700"
-          >
-            <Heart className="w-4 h-4 inline mr-1 text-secondary-500" />
-            {t('tripPlanner.interests')} <span className="text-red-500">*</span>
-            <span className="font-normal text-gray-500 ml-2">
-              ({t('tripPlanner.selectAtLeastOne')})
-            </span>
-          </label>
-          <Controller
-            name="interests"
-            control={control}
-            rules={{
-              validate: (value) =>
-                (value && value.length > 0) ||
-                t('tripPlanner.validation.interestsRequired'),
-            }}
-            render={({ field }) => (
-              <InterestsSelect
-                value={field.value}
-                onChange={field.onChange}
-                error={errors.interests}
-              />
-            )}
-          />
-          {errors.interests && (
-            <p
-              id="interests-error"
-              className="text-red-500 text-sm flex items-center gap-1"
-              role="alert"
-            >
-              <X className="w-4 h-4" />
-              {errors.interests.message}
-            </p>
           )}
-        </div>
 
-        {/* Date Overlap Error */}
-        {dateOverlapError && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-700 text-sm font-medium flex items-center gap-2">
-              <X className="w-4 h-4" />
-              {dateOverlapError}
-            </p>
+          {/* Accommodation & Transport Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Accommodation Type */}
+            <div className="space-y-2">
+              <label
+                htmlFor="accommodationType"
+                className="block text-sm font-semibold text-gray-700"
+              >
+                <Home className="w-4 h-4 inline mr-1 text-gray-500" />
+                Accommodation Type
+              </label>
+              <div className="relative">
+                <select
+                  id="accommodationType"
+                  {...register("accommodationType")}
+                  className="w-full pl-4 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-secondary-500 focus:ring-2 focus:border-transparent outline-none transition-all bg-white appearance-none"
+                >
+                  {ACCOMMODATION_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.icon} {type.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                {ACCOMMODATION_TYPES.find(t => t.id === watchAccommodationType)?.description || ''}
+              </p>
+            </div>
+
+            {/* Transport Mode */}
+            <div className="space-y-2">
+              <label
+                htmlFor="transportMode"
+                className="block text-sm font-semibold text-gray-700"
+              >
+                <Car className="w-4 h-4 inline mr-1 text-gray-500" />
+                Transport Mode
+              </label>
+              <div className="relative">
+                <select
+                  id="transportMode"
+                  {...register("transportMode")}
+                  className="w-full pl-4 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-secondary-500 focus:ring-2 focus:border-transparent outline-none transition-all bg-white appearance-none"
+                >
+                  {TRANSPORT_MODES.map((mode) => (
+                    <option key={mode.id} value={mode.id}>
+                      {mode.icon} {mode.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                {TRANSPORT_MODES.find(m => m.id === watchTransportMode)?.description || ''}
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Submit Button */}
-        <div className="pt-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 px-6 rounded-xl bg-secondary-500 hover:bg-[#1a6f7a] text-white font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-secondary-500/30"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {t('tripPlanner.creatingTrip')}
-              </>
-            ) : (
-              <>
-                <MapPin className="w-5 h-5" />
-                {t('tripPlanner.planTrip')}
-              </>
+          {/* Interests */}
+          <div className="space-y-3">
+            <label
+              id="interests-label"
+              className="block text-sm font-semibold text-gray-700"
+            >
+              <Heart className="w-4 h-4 inline mr-1 text-secondary-500" />
+              {t("tripPlanner.interests")}{" "}
+              <span className="text-red-500">*</span>
+              <span className="font-normal text-gray-500 ml-2">
+                ({t("tripPlanner.selectAtLeastOne")})
+              </span>
+            </label>
+            <Controller
+              name="interests"
+              control={control}
+              rules={{
+                validate: (value) =>
+                  (value && value.length > 0) ||
+                  t("tripPlanner.validation.interestsRequired"),
+              }}
+              render={({ field }) => (
+                <InterestsSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.interests}
+                />
+              )}
+            />
+            {errors.interests && (
+              <p
+                id="interests-error"
+                className="text-red-500 text-sm flex items-center gap-1"
+                role="alert"
+              >
+                <X className="w-4 h-4" />
+                {errors.interests.message}
+              </p>
             )}
-          </button>
-        </div>
-      </form>
-    </div>
+          </div>
+
+          {/* Date Overlap Error */}
+          {dateOverlapError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-700 text-sm font-medium flex items-center gap-2">
+                <X className="w-4 h-4" />
+                {dateOverlapError}
+              </p>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-4 px-6 rounded-xl bg-secondary-500 hover:bg-[#1a6f7a] text-white font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-secondary-500/30"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {t("tripPlanner.creatingTrip")}
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-5 h-5" />
+                  {t("tripPlanner.planTrip")}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </>
   );
 };

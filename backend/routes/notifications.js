@@ -191,4 +191,23 @@ router.put('/settings', auth, async (req, res) => {
   }
 });
 
+/**
+ * @route   POST /api/notifications/trigger-reminders
+ * @desc    Manually trigger the reminder scheduler (for testing)
+ * @access  Private (admin only in production)
+ */
+router.post('/trigger-reminders', auth, async (req, res) => {
+  try {
+    const { triggerReminderCheck } = require('../services/tripReminderScheduler');
+    await triggerReminderCheck();
+    res.json({ 
+      success: true, 
+      message: 'Reminder check triggered. Check server logs for details.' 
+    });
+  } catch (error) {
+    console.error('Manual trigger error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   SparklesIcon,
@@ -22,8 +22,9 @@ import {
 } from '../../hooks/useRecommendations';
 import { useRecommendationsStore } from '../../store/recommendationsStore';
 import { useItineraryStore } from '../../store/itineraryStore';
-import { generateItinerary } from '../../services/recommendationsApi';
+// generateItinerary is now called from the store (survives navigation)
 import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { filterBlacklisted } from '../../services/blacklistService';
 
 // Loading skeleton component
 const RecommendationSkeleton = () => (
@@ -58,6 +59,8 @@ const RecommendationPanel = ({
   groupSize = 2,
   startDate,
   endDate,
+  accommodationType = 'midrange',
+  transportMode = 'tuktuk',
   onAddToItinerary,
   autoFetch = false,
   showFilters = true,
@@ -67,9 +70,15 @@ const RecommendationPanel = ({
 }) => {
   const navigate = useNavigate();
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // loading and error come from the store (persist across navigation)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
+  // Ref to track which destination we've already fetched for (prevents double-fetch/flickering)
+  const hasFetchedForDestination = useRef(null);
+  
+  // Custom accommodation modal state
+  const [showCustomAccomModal, setShowCustomAccomModal] = useState(false);
+  const [customAccom, setCustomAccom] = useState({ name: '', pricePerNight: '', location: '' });
 
   // Feature access control for guests
   const { isGuest, isAuthenticated, canUseFeature, recordUsage, getRemainingUsage, getMaxUsage } = useFeatureAccess();
@@ -83,15 +92,25 @@ const RecommendationPanel = ({
     setLoading: setStoreLoading,
     setError: setStoreError,
     getCachedByDestination,
+    clearRecommendationsForDestination,
     paramsMatch,
+    fetchRecommendations: storeFetch,
+    loading,
+    error,
   } = useRecommendationsStore();
   
   // Get saved items to filter out from recommendations
-  const { savedItems } = useItineraryStore();
+  const { savedItems, tripDetails } = useItineraryStore();
+  const currentTripId = tripDetails?.tripId;
   
   // Filter out items that are already saved to itinerary for this destination
+  // Normalize destination for comparison: tripId uses hyphens (nuwara-eliya-2026...)
+  const normalizedDest = destination?.toLowerCase().replace(/\s+/g, '-');
   const savedItemNames = savedItems
-    .filter(item => item.tripId?.toLowerCase().includes(destination?.toLowerCase()))
+    .filter(item => {
+      const tripIdLower = item.tripId?.toLowerCase() || '';
+      return tripIdLower.includes(normalizedDest) || tripIdLower.includes(destination?.toLowerCase());
+    })
     .map(item => item.name?.toLowerCase());
 
   // Current params - include excludes so AI doesn't suggest already-saved items
@@ -103,6 +122,8 @@ const RecommendationPanel = ({
     groupSize,
     startDate,
     endDate,
+    accommodationType,
+    transportMode,
     exclude: savedItemNames, // Send saved item names to exclude from AI responses
   };
 
@@ -117,6 +138,10 @@ const RecommendationPanel = ({
     recommendedRestaurants: (cachedRecommendations.recommendedRestaurants || []).filter(
       rec => !savedItemNames.includes(rec.name?.toLowerCase())
     ),
+    // Preserve new fields for accommodation and transport suggestions
+    recommendedAccommodations: cachedRecommendations.recommendedAccommodations || [],
+    transportEstimate: cachedRecommendations.transportEstimate || null,
+    budgetBreakdown: cachedRecommendations.budgetBreakdown || null,
   } : null;
   
   // Check if we have any recommendations after filtering
@@ -129,17 +154,15 @@ const RecommendationPanel = ({
   const fromCache = cachedRecommendations && 
     ((cachedRecommendations.topAttractions?.length || 0) + (cachedRecommendations.recommendedRestaurants?.length || 0)) > 0;
 
-  // Fetch recommendations function
+  // Fetch recommendations - delegates to the store so it survives navigation
   const fetchRecommendations = useCallback(
     async (forceRefresh = false) => {
-      if (!destination) {
-        setError('Destination is required');
-        return null;
-      }
+      if (!destination) return null;
 
       // If not forcing refresh and we have valid cache, return cached
       if (!forceRefresh && hasValidCache) {
-        return storedRecommendations;
+        console.log('Using cached recommendations for:', destination);
+        return cachedRecommendations;
       }
 
       // Check usage limit BEFORE making API call (for both guests and auth users)
@@ -148,50 +171,37 @@ const RecommendationPanel = ({
         if (isGuest) {
           setShowUpgradeModal(true);
         } else {
-          setError(`Daily limit reached (${access.reason}). Try again tomorrow.`);
+          setStoreError(`Daily limit reached (${access.reason}). Try again tomorrow.`);
         }
         return null;
       }
 
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await generateItinerary(currentParams);
-
-        if (response.success) {
-          const data = response.data;
-          // Record usage AFTER successful API call
-          recordUsage('aiRecommendations');
-          // Save to Zustand store (persisted)
-          setRecommendations(data, currentParams);
-          setLoading(false);
-          return data;
-        } else {
-          throw new Error(response.error || 'Failed to get recommendations');
-        }
-      } catch (err) {
-        const errorMessage =
-          err.response?.data?.error ||
-          err.message ||
-          'Failed to fetch recommendations';
-        setError(errorMessage);
-        setLoading(false);
-        return null;
+      // Call the store's fetch action (survives component unmount)
+      const result = await storeFetch(currentParams, { forceRefresh });
+      if (result) {
+        recordUsage('aiRecommendations');
       }
+      return result;
     },
     [
       destination,
       JSON.stringify(currentParams),
       hasValidCache,
       cachedRecommendations,
+      storeFetch,
     ]
   );
 
-  // Refetch function (forces refresh)
+  // Refetch function (forces refresh) - clears cache and fetches fresh
   const refetch = useCallback(() => {
+    // Clear cached recommendations for this destination first
+    if (destination) {
+      clearRecommendationsForDestination(destination);
+      // Reset the fetch tracker so useEffect can trigger again if needed
+      hasFetchedForDestination.current = null;
+    }
     return fetchRecommendations(true);
-  }, [fetchRecommendations]);
+  }, [fetchRecommendations, destination, clearRecommendationsForDestination]);
 
   // Use interaction tracking hook
   const {
@@ -206,7 +216,7 @@ const RecommendationPanel = ({
   } = useRecommendationInteractions();
 
   // Extract attractions and restaurants from recommendations
-  const allRecommendations = [
+  const rawRecommendations = [
     ...(recommendations?.topAttractions || []).map((r) => ({
       ...r,
       type: 'attraction',
@@ -216,6 +226,19 @@ const RecommendationPanel = ({
       type: 'restaurant',
     })),
   ];
+  
+  // Deduplicate by name (case-insensitive) - AI sometimes generates duplicates
+  // Also filter out blacklisted (closed) establishments
+  const deduplicatedRecs = rawRecommendations.filter((rec, index, self) => 
+    index === self.findIndex(r => r.name?.toLowerCase().trim() === rec.name?.toLowerCase().trim())
+  );
+  const allRecommendations = filterBlacklisted(deduplicatedRecs);
+  
+  // Extract accommodations and transport estimates (Phase 3)
+  // Filter out blacklisted (closed) establishments
+  const accommodations = filterBlacklisted(recommendations?.recommendedAccommodations || []);
+  const transportEstimate = recommendations?.transportEstimate || null;
+  const budgetBreakdown = recommendations?.budgetBreakdown || null;
 
   // Use filtering hook
   const {
@@ -268,10 +291,27 @@ const RecommendationPanel = ({
   };
 
   // Auto-fetch recommendations when autoFetch is true and we have a destination
+  // Use ref to prevent double-fetching when callback dependencies change
   useEffect(() => {
-    console.log('Auto-fetch check:', { autoFetch, destination, hasRecommendations: !!recommendations, loading, hasValidCache });
+    console.log('Auto-fetch check:', { autoFetch, destination, hasRecommendations: !!recommendations, loading, hasValidCache, alreadyFetched: hasFetchedForDestination.current });
+    
+    // Skip if we've already fetched for this exact destination
+    if (hasFetchedForDestination.current === destination) {
+      console.log('Already fetched for this destination, skipping');
+      return;
+    }
+
+    // Skip if a fetch is already running in the store (e.g., user navigated away and came back)
+    const activeFetchId = useRecommendationsStore.getState()._activeFetchId;
+    if (activeFetchId) {
+      console.log('Store has an active fetch in progress, skipping auto-fetch');
+      hasFetchedForDestination.current = destination; // Mark so we don't re-trigger
+      return;
+    }
+    
     if (autoFetch && destination && !recommendations && !loading) {
       console.log('Triggering auto-fetch for:', destination);
+      hasFetchedForDestination.current = destination; // Mark as fetched BEFORE calling
       fetchRecommendations();
     }
   }, [autoFetch, destination, recommendations, loading, hasValidCache, fetchRecommendations]);
@@ -320,20 +360,21 @@ const RecommendationPanel = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {hasValidCache && (
+            {hasValidCache && !loading && (
               <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full">
-                {fromCache ? 'Cached' : 'Cached'}
+                Cached
               </span>
             )}
             <button
               onClick={() => refetch()}
               disabled={loading || !destination}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh recommendations"
+              className="flex items-center gap-1 px-3 py-1.5 text-white/90 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50 text-sm"
+              title="Get fresh AI recommendations"
             >
               <ArrowPathIcon
-                className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`}
+                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
               />
+              {loading ? 'Loading...' : 'Refresh'}
             </button>
           </div>
         </div>
@@ -364,6 +405,299 @@ const RecommendationPanel = ({
           </div>
         )}
       </div>
+
+      {/* Accommodations Section - Phase 3 */}
+      {recommendations && accommodations.length > 0 && (
+        <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              🏨 Recommended Accommodations
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Optional</span>
+            </h3>
+          </div>
+          
+          {/* Budget Warning - show if budget is insufficient */}
+          {recommendations.budgetWarning?.insufficient && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <span className="text-red-500 text-lg">⚠️</span>
+                <div>
+                  <p className="text-sm text-red-700 font-medium">Budget Insufficient for {accommodationType} Accommodation</p>
+                  <p className="text-xs text-red-600 mt-1">
+                    {recommendations.budgetWarning.message || 
+                      `You need LKR ${(recommendations.budgetWarning.shortfall || 0).toLocaleString()} more. 
+                       Recommended budget: LKR ${(recommendations.budgetWarning.recommendedBudget || 0).toLocaleString()}`
+                    }
+                  </p>
+                  <p className="text-xs text-red-500 mt-2 italic">
+                    💡 Consider increasing your budget or choosing a lower accommodation type.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {accommodations.slice(0, 6).map((hotel, index) => {
+              const totalCost = (hotel.pricePerNight || 0) * (duration || 1);
+              const isHotelSaved = savedItemNames.includes(hotel.name?.toLowerCase());
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`bg-white rounded-xl p-4 border transition-all shadow-sm hover:shadow-md ${isHotelSaved ? 'border-green-300 bg-green-50' : 'border-amber-200 hover:border-amber-400'}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800">{hotel.name}</h4>
+                      {(() => {
+                        // Append common hotel parameters to Google Maps link
+                        const mapsQuery = hotel.name + ', ' + destination + ', Sri Lanka';
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+                        return (
+                          <a 
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 mt-1"
+                          >
+                            📍 {hotel.location}
+                          </a>
+                        );
+                      })()}
+                      {hotel.amenities && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {hotel.amenities.slice(0, 3).map((amenity, i) => (
+                            <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                              {amenity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {hotel.whyRecommended && (
+                        <p className="text-xs text-amber-700 mt-2 italic">
+                          {hotel.whyRecommended}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right ml-3">
+                      <div className="text-lg font-bold text-amber-600">
+                        LKR {(hotel.pricePerNight || 0).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">/night</div>
+                      {hotel.rating && (
+                        <div className="flex items-center gap-1 mt-1 justify-end">
+                          <span className="text-yellow-500">★</span>
+                          <span className="text-sm font-medium">{hotel.rating}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Verification Button */}
+                  {(() => {
+                    // Strip room type suffixes like "(Premium Room)" or "(Ocean View Suite)" for cleaner search
+                    const cleanHotelName = hotel.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                    // Include destination to avoid finding same-named hotels in other countries/cities
+                    let bookingParams = `ss=${encodeURIComponent(cleanHotelName + ', ' + destination + ', Sri Lanka')}&label=serendibtrip`;
+                    
+                    if (startDate) {
+                      bookingParams += `&checkin=${startDate}`;
+                    }
+                    if (endDate) {
+                      bookingParams += `&checkout=${endDate}`;
+                    }
+                    
+                    if (groupSize) {
+                      const numRooms = Math.ceil(groupSize / 2);
+                      bookingParams += `&group_adults=${groupSize}&req_adults=${groupSize}&no_rooms=${numRooms}`;
+                    }
+                    const bookingUrl = `https://www.booking.com/searchresults.html?${bookingParams}`;
+                    return (
+                      <div className="mt-2 flex gap-2">
+                        <a
+                          href={bookingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-xs font-medium transition-colors"
+                          title={`Search for ${cleanHotelName} on Booking.com`}
+                        >
+                          🔍 Verify on Booking.com
+                        </a>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Add to Itinerary button */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <div className="text-xs text-gray-500">
+                      Total: <span className="font-semibold text-amber-600">LKR {totalCost.toLocaleString()}</span> 
+                      <span className="text-gray-400"> ({duration || 1} night{(duration || 1) > 1 ? 's' : ''})</span>
+                    </div>
+                    <button
+                      onClick={() => onAddToItinerary && onAddToItinerary({
+                        ...hotel,
+                        type: 'accommodation',
+                        category: 'accommodation',
+                        entryFee: hotel.pricePerNight || 0, // Per night cost
+                        cost: hotel.pricePerNight || 0, // Per night cost
+                        totalCost: totalCost, // Store total for reference
+                        showOnAllDays: true, // Flag to show on all days
+                        description: `${hotel.name} - ${hotel.type || 'Hotel'} accommodation`,
+                      })}
+                      disabled={isHotelSaved}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                        isHotelSaved 
+                          ? 'bg-green-100 text-green-600 cursor-default' 
+                          : 'bg-amber-500 text-white hover:bg-amber-600'
+                      }`}
+                    >
+                      {isHotelSaved ? '✓ Added' : '+ Add to Itinerary'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Enhanced Disclaimer */}
+          <div className="mt-4 p-3 bg-amber-100 border border-amber-300 rounded-lg">
+            <p className="text-sm text-amber-800 font-medium text-center mb-2">
+              ⚠️ Prices are AI estimates and may differ significantly from actual booking prices
+            </p>
+            <div className="flex justify-center gap-3 text-xs">
+              <a
+                href={(() => {
+                  let params = `ss=${encodeURIComponent(destination + ', Sri Lanka')}&label=serendibtrip`;
+                  
+                  if (startDate) {
+                    params += `&checkin=${startDate}`;
+                  }
+                  if (endDate) {
+                    params += `&checkout=${endDate}`;
+                  }
+                  
+                  if (groupSize) {
+                    const numRooms = Math.ceil(groupSize / 2);
+                    params += `&group_adults=${groupSize}&req_adults=${groupSize}&no_rooms=${numRooms}`;
+                  }
+                  return `https://www.booking.com/searchresults.html?${params}`;
+                })()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                🔍 Search on Booking.com
+              </a>
+              <a
+                href={`https://www.agoda.com/city/${destination.toLowerCase().replace(/\s+/g, '-')}-lk.html`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              >
+                🔍 Search on Agoda
+              </a>
+            </div>
+          </div>
+          
+          {/* Add Custom Accommodation Button */}
+          <button
+            onClick={() => setShowCustomAccomModal(true)}
+            className="mt-3 w-full py-2 bg-white border-2 border-dashed border-amber-300 text-amber-700 rounded-lg text-sm font-medium hover:border-amber-400 hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+          >
+            ➕ Add Your Own Accommodation
+          </button>
+        </div>
+      )}
+
+      {/* Transport & Budget Summary - Phase 3 */}
+      {recommendations && (transportEstimate || budgetBreakdown) && (
+        <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-100">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {transportEstimate && (() => {
+              // Use user's selected transportMode, fallback to AI's estimate mode
+              const transportName = transportMode === 'public' ? 'Public Transport' 
+                : transportMode === 'private' ? 'Private Car'
+                : transportMode === 'tuktuk' ? 'Tuk-Tuk'
+                : transportMode === 'mix' ? 'Mixed Transport'
+                : transportEstimate.mode;
+              const transportTotalCost = (transportEstimate.dailyCost || 0) * (duration || 1);
+              const tripDuration = duration || 1;
+              
+              // Check if transport for the CURRENT trip is already saved (not other trips to same destination)
+              const hasTransportSaved = currentTripId 
+                ? savedItems.some(item => item.tripId === currentTripId && item.name?.toLowerCase().includes('transport'))
+                : savedItemNames.some(name => name?.includes('transport'));
+              
+              // Function to add transport for ALL days
+              const addTransportForAllDays = () => {
+                if (!onAddToItinerary) return;
+                
+                // Create separate transport item for each day
+                for (let day = 1; day <= tripDuration; day++) {
+                  const transportItem = {
+                    name: `Transport Day ${day} - ${transportName}`,
+                    type: 'transport',
+                    category: 'transport',
+                    entryFee: transportEstimate.dailyCost || 0,
+                    cost: transportEstimate.dailyCost || 0,
+                    recommendedDay: day,
+                    description: `${transportName} for Day ${day}. Edit price if needed.`,
+                    location: destination,
+                  };
+                  onAddToItinerary(transportItem);
+                }
+              };
+              
+              return (
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🚗</span>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Transport: </span>
+                    <span className="text-sm text-blue-600 font-semibold">
+                      ~LKR {(transportEstimate.dailyCost || 0).toLocaleString()}/day
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({transportName})
+                    </span>
+                    <span className="text-xs text-gray-400 ml-2">
+                      Total: LKR {transportTotalCost.toLocaleString()} ({tripDuration} days)
+                    </span>
+                  </div>
+                  <button
+                    onClick={addTransportForAllDays}
+                    disabled={hasTransportSaved}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      hasTransportSaved 
+                        ? 'bg-green-100 text-green-600 cursor-default' 
+                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {hasTransportSaved ? '✓ Added' : '+ Add'}
+                  </button>
+                </div>
+              );
+            })()}
+            {budgetBreakdown && (
+              <div className="flex items-center gap-4 text-xs flex-wrap">
+                <span className="text-gray-500">Estimated Budget:</span>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                  🏨 {(budgetBreakdown.accommodation || 0).toLocaleString()}
+                </span>
+                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                  🍽️ {(budgetBreakdown.food || 0).toLocaleString()}
+                </span>
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
+                  🚗 {(budgetBreakdown.transport || 0).toLocaleString()}
+                </span>
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                  🎫 {(budgetBreakdown.activities || 0).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       {showFilters && recommendations && (
@@ -634,6 +968,97 @@ const RecommendationPanel = ({
                   Sign In
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Custom Accommodation Modal */}
+      {showCustomAccomModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Add Your Own Accommodation</h3>
+              <button
+                onClick={() => setShowCustomAccomModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Add a hotel you've researched on Booking.com or Agoda with verified pricing.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name *</label>
+                <input
+                  type="text"
+                  value={customAccom.name}
+                  onChange={(e) => setCustomAccom({ ...customAccom, name: e.target.value })}
+                  placeholder="e.g., Grand Hotel Nuwara Eliya"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price per Night (LKR) *</label>
+                <input
+                  type="number"
+                  value={customAccom.pricePerNight}
+                  onChange={(e) => setCustomAccom({ ...customAccom, pricePerNight: e.target.value })}
+                  placeholder="e.g., 25000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={customAccom.location}
+                  onChange={(e) => setCustomAccom({ ...customAccom, location: e.target.value })}
+                  placeholder="e.g., City Center, Nuwara Eliya"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCustomAccomModal(false)}
+                className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (customAccom.name && customAccom.pricePerNight && onAddToItinerary) {
+                    const price = parseInt(customAccom.pricePerNight) || 0;
+                    onAddToItinerary({
+                      name: customAccom.name,
+                      type: 'accommodation',
+                      category: 'accommodation',
+                      pricePerNight: price,
+                      entryFee: price,
+                      cost: price,
+                      totalCost: price * (duration || 1),
+                      location: customAccom.location || destination,
+                      showOnAllDays: true,
+                      description: `${customAccom.name} - Custom accommodation (verified by user)`,
+                      whyRecommended: 'Added manually with verified pricing',
+                    });
+                    setCustomAccom({ name: '', pricePerNight: '', location: '' });
+                    setShowCustomAccomModal(false);
+                  }
+                }}
+                disabled={!customAccom.name || !customAccom.pricePerNight}
+                className="flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Add to Itinerary
+              </button>
             </div>
           </div>
         </div>

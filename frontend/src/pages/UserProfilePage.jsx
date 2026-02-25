@@ -47,6 +47,7 @@ const UserProfilePage = () => {
     trips,
     tripsLoading,
     fetchProfile,
+    fetchTrips,
     updateProfile,
     updatePreferences,
     removeFavorite,
@@ -61,10 +62,11 @@ const UserProfilePage = () => {
     !!localStorage.getItem('token')
   );
 
-  // Fetch profile on mount if authenticated
+  // Fetch profile AND trips on mount if authenticated
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !user) {
+      // Fetch profile first
       fetchProfile().catch((err) => {
         console.error('Failed to fetch profile:', err);
         // If token is invalid, clear it and show sign-in prompt
@@ -76,7 +78,11 @@ const UserProfilePage = () => {
         }
       });
     }
-  }, [user, fetchProfile, clearError]);
+    // Also refresh trips to get latest savedItems data
+    if (token) {
+      fetchTrips().catch(console.error);
+    }
+  }, [user, fetchProfile, fetchTrips, clearError]);
 
   // Handle profile update
   const handleProfileSave = async (profileData) => {
@@ -293,7 +299,7 @@ const UserProfilePage = () => {
           {/* Stats */}
           <div className="flex gap-6 mt-6">
             <div className="text-center">
-              <p className="text-2xl font-bold">{trips?.length || 0}</p>
+              <p className="text-2xl font-bold">{trips?.filter(t => t.savedItems?.length > 0).length || 0}</p>
               <p className="text-sm text-white/80">{t('profile.stats.trips')}</p>
             </div>
             <div className="text-center">

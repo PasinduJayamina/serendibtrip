@@ -16,7 +16,19 @@ import { useUserStore } from '../store/userStore';
  * - 5 AI recommendation requests per day
  * - 10 active trips max
  * - 50 items per trip max
+ * 
+ * DEV/TESTING MODE: Set localStorage.setItem('devMode', 'true') to bypass all limits
+ * Toggle in console: localStorage.setItem('devMode', 'true') or localStorage.removeItem('devMode')
  */
+
+// Check if dev mode is enabled (bypasses all limits for testing)
+const isDevMode = () => {
+  try {
+    return localStorage.getItem('devMode') === 'true';
+  } catch {
+    return false;
+  }
+};
 
 // Feature limits configuration
 const FEATURE_LIMITS = {
@@ -70,15 +82,16 @@ const FEATURE_LIMITS = {
       reason: 'Sign in to save recommendations to your itinerary'
     }
   },
+  // TODO: REDUCE THESE FOR PRODUCTION - Currently set high for development testing
   authenticated: {
     aiChat: {
       enabled: true,
-      maxMessagesPerDay: 20,
+      maxMessagesPerDay: 999, // DEV: was 20
       reason: 'Daily limit reached. Try again tomorrow!'
     },
     aiRecommendations: {
       enabled: true,
-      maxRequestsPerDay: 5,
+      maxRequestsPerDay: 999, // DEV: was 5
       cacheHours: 24,
       reason: 'Daily limit reached. Recommendations are cached for 24 hours.'
     },
@@ -225,6 +238,11 @@ export const useFeatureAccess = () => {
    * @returns {object} { allowed: boolean, reason: string, remaining?: number, showUpgrade?: boolean }
    */
   const canUseFeature = useCallback((featureName) => {
+    // DEV MODE BYPASS - Unlimited access for testing
+    if (isDevMode()) {
+      return { allowed: true, remaining: 999, devMode: true };
+    }
+
     const feature = limits[featureName];
     const userId = user?.id || user?._id;
     

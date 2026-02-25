@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { generateItinerary } from '../services/recommendationsApi';
 
 /**
  * Zustand store for AI recommendations
@@ -20,6 +21,62 @@ export const useRecommendationsStore = create(
 
       // Error state
       error: null,
+
+      // Active fetch tracking (prevents stale responses)
+      _activeFetchId: null,
+
+      // Fetch recommendations - runs in store so it survives navigation
+      fetchRecommendations: async (params, { forceRefresh = false } = {}) => {
+        const destination = params.destination;
+        if (!destination) {
+          set({ error: 'Destination is required', loading: false });
+          return null;
+        }
+
+        // If not forcing refresh and we have valid cache, return cached
+        if (!forceRefresh) {
+          const cached = get().getCachedByDestination(destination);
+          if (cached) {
+            const hasItems = ((cached.topAttractions?.length || 0) + (cached.recommendedRestaurants?.length || 0)) > 0;
+            if (hasItems) {
+              console.log('Store: Using cached recommendations for:', destination);
+              return cached;
+            }
+          }
+        }
+
+        // Generate a unique fetch ID to handle race conditions
+        const fetchId = Date.now() + '-' + Math.random().toString(36).slice(2);
+        set({ loading: true, error: null, _activeFetchId: fetchId });
+
+        console.log('Store: Fetching FRESH recommendations for:', destination);
+
+        try {
+          const response = await generateItinerary(params);
+
+          // Check if this fetch is still the active one (not stale)
+          if (get()._activeFetchId !== fetchId) {
+            console.log('Store: Fetch was superseded, discarding results');
+            return null;
+          }
+
+          if (response.success) {
+            const data = response.data;
+            get().setRecommendations(data, params);
+            set({ loading: false, _activeFetchId: null });
+            return data;
+          } else {
+            throw new Error(response.error || 'Failed to get recommendations');
+          }
+        } catch (err) {
+          // Only set error if this is still the active fetch
+          if (get()._activeFetchId === fetchId) {
+            const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch recommendations';
+            set({ error: errorMessage, loading: false, _activeFetchId: null });
+          }
+          return null;
+        }
+      },
 
       // ============ ACTIONS ============
 
@@ -165,8 +222,12 @@ export const useRecommendationsStore = create(
     }),
     {
       name: 'serendibtrip-recommendations',
-      version: 3, // Bumped version for migration
-      // Use localStorage for persistence across sessions
+      version: 4, // Bumped version - moved fetch to store
+      // Only persist recommendation cache, not transient loading/error state
+      partialize: (state) => ({
+        recommendationsByDestination: state.recommendationsByDestination,
+        currentDestination: state.currentDestination,
+      }),
     }
   )
 );

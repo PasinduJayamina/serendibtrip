@@ -325,9 +325,12 @@ export const useUserStore = create(
       deleteTrip: async (tripId) => {
         try {
           await userApi.deleteTrip(tripId);
+          // Remove trip from user's trips
           set((state) => ({
             trips: state.trips.filter((trip) => trip.tripId !== tripId),
           }));
+          // Also clear all itinerary items for this trip
+          useItineraryStore.getState().clearTripItems(tripId);
         } catch (error) {
           throw error;
         }

@@ -111,6 +111,17 @@ const savedTripSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.Mixed],
       default: [],
     },
+    // Trip preferences
+    accommodationType: {
+      type: String,
+      enum: ['budget', 'midrange', 'luxury'],
+      default: 'midrange',
+    },
+    transportMode: {
+      type: String,
+      enum: ['public', 'tuktuk', 'private', 'mix'],
+      default: 'tuktuk',
+    },
     status: {
       type: String,
       enum: ['planned', 'ongoing', 'completed', 'cancelled'],

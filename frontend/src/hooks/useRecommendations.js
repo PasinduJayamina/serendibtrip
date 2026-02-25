@@ -179,6 +179,7 @@ export const useRecommendations = ({
 
 /**
  * Hook for managing recommendation interactions (thumbs up/down, favorites)
+ * Now syncs favorites to backend for authenticated users
  */
 export const useRecommendationInteractions = () => {
   const [interactions, setInteractions] = useState(() => {
@@ -192,6 +193,10 @@ export const useRecommendationInteractions = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Check if user is authenticated (using localStorage token)
+  const getAuthToken = () => localStorage.getItem('token');
+  const isAuthenticated = () => !!getAuthToken();
+
   // Save interactions to localStorage
   useEffect(() => {
     localStorage.setItem(
@@ -200,10 +205,63 @@ export const useRecommendationInteractions = () => {
     );
   }, [interactions]);
 
-  // Save favorites to localStorage
+  // Save favorites to localStorage (for local caching)
   useEffect(() => {
     localStorage.setItem('recommendation_favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  // Sync favorite to backend
+  const syncFavoriteToBackend = async (action, recommendation) => {
+    if (!isAuthenticated()) {
+      console.log('⚠️ Not authenticated, skipping backend sync');
+      return;
+    }
+    
+    try {
+      const token = getAuthToken();
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const attractionId = recommendation.id || recommendation.name.replace(/\s+/g, '-').toLowerCase();
+      
+      if (action === 'add') {
+        const response = await fetch(`${baseUrl}/users/favorites/${attractionId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: recommendation.name,
+            category: recommendation.category || recommendation.type || 'attraction',
+            location: recommendation.location || '',
+            image: recommendation.image || '',
+            rating: recommendation.rating || 0,
+          })
+        });
+        
+        if (response.ok) {
+          console.log('✅ Favorite synced to backend');
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Backend error:', errorData.message || response.status);
+        }
+      } else if (action === 'remove') {
+        const response = await fetch(`${baseUrl}/users/favorites/${attractionId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          console.log('✅ Favorite removed from backend');
+        } else {
+          console.error('❌ Failed to remove favorite from backend');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync favorite to backend:', error);
+    }
+  };
 
   // Record thumbs up
   const thumbsUp = useCallback((recommendationId) => {
@@ -248,7 +306,7 @@ export const useRecommendationInteractions = () => {
     [interactions]
   );
 
-  // Add to favorites
+  // Add to favorites (syncs to backend for authenticated users)
   const addToFavorites = useCallback((recommendation) => {
     setFavorites((prev) => {
       // Check if already in favorites
@@ -261,16 +319,28 @@ export const useRecommendationInteractions = () => {
       }
       return [...prev, { ...recommendation, savedAt: Date.now() }];
     });
+    
+    // Sync to backend for authenticated users
+    syncFavoriteToBackend('add', recommendation);
   }, []);
 
-  // Remove from favorites
+  // Remove from favorites (syncs to backend for authenticated users)
   const removeFromFavorites = useCallback((recommendationId) => {
+    const favoriteToRemove = favorites.find(
+      (f) => f.id === recommendationId || f.name === recommendationId
+    );
+    
     setFavorites((prev) =>
       prev.filter(
         (f) => f.id !== recommendationId && f.name !== recommendationId
       )
     );
-  }, []);
+    
+    // Sync to backend
+    if (favoriteToRemove) {
+      syncFavoriteToBackend('remove', favoriteToRemove);
+    }
+  }, [favorites]);
 
   // Check if recommendation is in favorites
   const isFavorite = useCallback(

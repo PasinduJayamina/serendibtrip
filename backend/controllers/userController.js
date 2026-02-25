@@ -402,7 +402,7 @@ const getTrips = async (req, res) => {
 const updateTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { status, itinerary, savedItems, interests } = req.body;
+    const { status, itinerary, savedItems, interests, budget, groupSize, duration, accommodationType, transportMode, startDate, endDate, destination } = req.body;
 
     const user = await User.findById(req.user.id);
 
@@ -417,21 +417,49 @@ const updateTrip = async (req, res) => {
       (trip) => trip.tripId === tripId
     );
 
-    // Fallback: try matching by destination name if exact tripId doesn't match
-    // This handles legacy trips with old tripId format
-    if (tripIndex === -1) {
-      const destFromId = tripId.split('-')[0];
-      tripIndex = user.savedTrips.findIndex(
-        (trip) => trip.destination.toLowerCase() === destFromId.toLowerCase()
-      );
-    }
+    // Note: Removed destination-based fallback matching.
+    // It caused multiple trips to the same destination to merge into the first one.
+    // Now only exact tripId matching is used. If no match, upsert creates a new trip.
 
     if (tripIndex === -1) {
-      console.log(`Trip not found for tripId: ${tripId}`);
-      return res.status(404).json({
-        success: false,
-        message: 'Trip not found',
+      // Trip doesn't exist - create it (upsert behavior)
+      // Prefer explicit values from request body over parsing from tripId
+      const { startDate: bodyStartDate, endDate: bodyEndDate, destination: bodyDestination } = req.body;
+      
+      // Parse tripId format: "destination-YYYY-MM-DD" or "destination-YYYY-MM-DD-timestamp"
+      const parts = tripId.split('-');
+      const destFromId = parts[0];
+      
+      // Extract date: look for YYYY-MM-DD pattern (skip trailing timestamp if present)
+      const dateMatch = tripId.match(/(\d{4}-\d{2}-\d{2})/);
+      const dateFromId = dateMatch ? dateMatch[1] : null;
+      
+      // Use request body values first, then parsed values, then defaults
+      const resolvedDestination = bodyDestination || (destFromId.charAt(0).toUpperCase() + destFromId.slice(1));
+      const resolvedStartDate = bodyStartDate ? new Date(bodyStartDate) : (dateFromId ? new Date(dateFromId) : new Date());
+      const tripDuration = duration || 1;
+      const resolvedEndDate = bodyEndDate ? new Date(bodyEndDate) : (() => {
+        const end = new Date(resolvedStartDate);
+        end.setDate(end.getDate() + tripDuration);
+        return end;
+      })();
+      
+      console.log(`Trip not found for tripId: ${tripId} - creating new trip. dest: ${resolvedDestination}, start: ${resolvedStartDate}, end: ${resolvedEndDate}, budget: ${budget}`);
+      
+      user.savedTrips.push({
+        tripId,
+        destination: resolvedDestination,
+        startDate: resolvedStartDate,
+        endDate: resolvedEndDate,
+        budget: budget || 0,
+        groupSize: groupSize || 2,
+        savedItems: savedItems || [],
+        interests: interests || [],
+        accommodationType: accommodationType || 'midrange',
+        transportMode: transportMode || 'tuktuk',
+        status: 'planned',
       });
+      tripIndex = user.savedTrips.length - 1;
     }
 
     // Update fields if provided
@@ -439,6 +467,14 @@ const updateTrip = async (req, res) => {
     if (itinerary) user.savedTrips[tripIndex].itinerary = itinerary;
     if (savedItems !== undefined) user.savedTrips[tripIndex].savedItems = savedItems;
     if (interests !== undefined) user.savedTrips[tripIndex].interests = interests;
+    if (budget !== undefined) user.savedTrips[tripIndex].budget = budget;
+    if (groupSize !== undefined) user.savedTrips[tripIndex].groupSize = groupSize;
+    if (duration !== undefined) user.savedTrips[tripIndex].duration = duration;
+    if (startDate) user.savedTrips[tripIndex].startDate = new Date(startDate);
+    if (endDate) user.savedTrips[tripIndex].endDate = new Date(endDate);
+    if (destination) user.savedTrips[tripIndex].destination = destination;
+    if (accommodationType) user.savedTrips[tripIndex].accommodationType = accommodationType;
+    if (transportMode) user.savedTrips[tripIndex].transportMode = transportMode;
 
     await user.save();
 

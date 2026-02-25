@@ -24,6 +24,9 @@ router.post('/itinerary', async (req, res) => {
       groupSize,
       interests,
       language,
+      accommodationType,
+      transportMode,
+      exclude,
     } = req.body;
 
     // Validate required fields
@@ -41,6 +44,9 @@ router.post('/itinerary', async (req, res) => {
           'Missing required fields: destination, startDate, endDate, duration, budget, groupSize',
       });
     }
+    
+    // Log params for debugging
+    console.log('📋 Trip params received:', { destination, accommodationType, transportMode });
 
     const result = await generateTravelItinerary({
       destination,
@@ -51,6 +57,9 @@ router.post('/itinerary', async (req, res) => {
       groupSize: parseInt(groupSize),
       interests: interests || [],
       language: language || 'English',
+      accommodationType: accommodationType || 'midrange',
+      transportMode: transportMode || 'tuktuk',
+      exclude: exclude || [],
     });
 
     if (!result.success) {

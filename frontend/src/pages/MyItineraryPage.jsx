@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -39,22 +39,39 @@ const MyItineraryPage = () => {
   const [showPackingList, setShowPackingList] = useState(true);
   const [editingItemId, setEditingItemId] = useState(null);
   const [editingPrice, setEditingPrice] = useState('');
+  // Misc expense modal state
+  const [showMiscModal, setShowMiscModal] = useState(false);
+  const [miscExpense, setMiscExpense] = useState({ name: '', cost: '', category: 'misc', tripId: '' });
+  // Trip editing state
+  const [editingTripId, setEditingTripId] = useState(null);
+  const [editTripData, setEditTripData] = useState({ startDate: '', endDate: '', budget: 0 });
 
   const {
     savedItems,
     tripDetails,
+    tripsMetadata,
     removeFromSavedAndSync,
+    addToSavedAndSync,
     clearItinerary,
     getEstimatedBudget,
     getExpenseSummary,
     getBudgetAlerts,
     markItemAsPaid,
+    markDayAsPaid,
     updateItemCost,
+    updateTripMeta,
     budgetAllocation,
   } = useItineraryStore();
 
   // Get user's saved trips
-  const { trips } = useUserStore();
+  const { trips, fetchTrips, isAuthenticated } = useUserStore();
+
+  // Fetch trips on mount to ensure budget data is available for progress bar
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchTrips();
+    }
+  }, [isAuthenticated, fetchTrips]);
 
   // Get stored recommendations params for navigation
   const { params: storedParams, hasStoredRecommendations } =
@@ -68,58 +85,204 @@ const MyItineraryPage = () => {
   // Group saved items by tripId, then by day
   const itemsByTrip = savedItems.reduce((acc, item) => {
     const tripId = item.tripId || 'default';
+    
     if (!acc[tripId]) {
-      acc[tripId] = { items: [], byDay: {} };
+      acc[tripId] = { items: [], byDay: {}, allDayItems: [] };
     }
     acc[tripId].items.push(item);
     
-    const day = item.assignedDay || 1;
-    if (!acc[tripId].byDay[day]) {
-      acc[tripId].byDay[day] = [];
+    // Items with showOnAllDays should be stored separately for later distribution
+    if (item.showOnAllDays) {
+      // Avoid duplicate all-day items (same name)
+      if (!acc[tripId].allDayItems.some(existing => existing.name === item.name)) {
+        acc[tripId].allDayItems.push(item);
+      }
+    } else {
+      const day = item.assignedDay || 1;
+      if (!acc[tripId].byDay[day]) {
+        acc[tripId].byDay[day] = [];
+      }
+      acc[tripId].byDay[day].push(item);
     }
-    acc[tripId].byDay[day].push(item);
     return acc;
   }, {});
+
+  // Helper function to extract destination from tripId
+  // Handles multi-word destinations like "nuwara-eliya-2024-02-14" -> "Nuwara Eliya"
+  const extractDestinationFromTripId = (tripId) => {
+    if (!tripId) return 'Trip';
+    // Split tripId and find where the date part starts (format: YYYY-MM-DD)
+    const parts = tripId.split('-');
+    // Find the index where date starts (4-digit year)
+    const dateStartIndex = parts.findIndex(part => /^\d{4}$/.test(part));
+    if (dateStartIndex > 0) {
+      // Join all parts before the date, capitalize each word
+      const destinationParts = parts.slice(0, dateStartIndex);
+      return destinationParts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+    }
+    // Fallback: capitalize first part
+    return parts[0]?.charAt(0).toUpperCase() + parts[0]?.slice(1) || 'Trip';
+  };
 
   // Get trip info from user's saved trips
   const getTrip = (tripId) => {
     if (!trips || trips.length === 0) return null;
     
-    // Extract destination from tripId (e.g., "colombo" from "colombo-2025-01-02")
-    const tripDestination = tripId.split('-')[0]?.toLowerCase();
+    // Extract destination from tripId (handles multi-word destinations)
+    const tripDestination = extractDestinationFromTripId(tripId).toLowerCase();
     
-    // Try multiple matching strategies
-    return trips?.find(t => {
-      // Match by exact tripId
-      if (t.tripId === tripId) return true;
-      // Match by constructed ID pattern
+    // 1. Try exact tripId match first (most reliable)
+    const exactMatch = trips.find(t => t.tripId === tripId);
+    if (exactMatch) return exactMatch;
+    
+    // 2. Try constructed ID pattern match (destination-startDate)
+    const constructedMatch = trips.find(t => {
       const constructedId = `${t.destination}-${t.startDate}`.toLowerCase().replace(/\s+/g, '-');
-      if (constructedId === tripId) return true;
-      // Match by destination name (most reliable)
-      if (t.destination?.toLowerCase() === tripDestination) return true;
-      return false;
+      return constructedId === tripId;
     });
+    if (constructedMatch) return constructedMatch;
+    
+    // 3. Only match by destination name if there's exactly ONE trip to that destination
+    // This avoids the bug where two Colombo trips both get the same backend trip
+    const destinationMatches = trips.filter(t => t.destination?.toLowerCase() === tripDestination);
+    if (destinationMatches.length === 1) return destinationMatches[0];
+    
+    // 4. If multiple trips to same destination, try matching by date extracted from tripId
+    if (destinationMatches.length > 1) {
+      // Extract date from tripId format: "colombo-2026-02-25" -> "2026-02-25"
+      const parts = tripId.split('-');
+      const dateStartIndex = parts.findIndex(part => /^\d{4}$/.test(part));
+      if (dateStartIndex > 0 && parts.length >= dateStartIndex + 3) {
+        const dateFromId = parts.slice(dateStartIndex, dateStartIndex + 3).join('-');
+        const dateMatch = destinationMatches.find(t => t.startDate === dateFromId);
+        if (dateMatch) return dateMatch;
+      }
+    }
+    
+    return null;
   };
 
   // Calculate expense summary for a specific trip
   const getTripExpenseSummary = (tripId, tripItems, trip) => {
-    const totalSpent = tripItems.reduce((sum, item) => sum + (item.cost || item.entryFee || item.trackedCost || 0), 0);
-    const paidItems = tripItems.filter(i => i.isPaid);
-    const paidAmount = paidItems.reduce((sum, item) => sum + (item.cost || item.entryFee || 0), 0);
-    const budget = trip?.budget || 0;
-    const remaining = budget - totalSpent;
-    const percentageUsed = budget > 0 ? Math.round((totalSpent / budget) * 100) : 0;
+    // Sanitize cost: clamp to max 10 million LKR (fixes corrupted data)
+    const MAX_PRICE = 10000000;
+    const sanitizeCost = (cost) => Math.max(0, Math.min(cost || 0, MAX_PRICE));
     
-    // Category breakdown
-    const byCategory = tripItems.reduce((acc, item) => {
-      const cat = item.expenseCategory || 'misc';
+    // Get trip metadata from our local store (for when backend trip is not yet synced)
+    const meta = tripsMetadata?.[tripId];
+    
+    // Get trip duration for showOnAllDays items
+    // Try multiple sources: trip.duration, tripsMetadata, calculate from dates, or max assigned day
+    let tripDuration = trip?.duration || meta?.duration;
+    if (!tripDuration && (trip?.startDate || meta?.startDate) && (trip?.endDate || meta?.endDate)) {
+      const start = new Date(trip?.startDate || meta?.startDate);
+      const end = new Date(trip?.endDate || meta?.endDate);
+      tripDuration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    }
+    if (!tripDuration) {
+      // Use max assigned day from items as fallback
+      tripDuration = Math.max(...tripItems.map(i => i.assignedDay || 1), 1);
+    }
+
+    // IMPORTANT: Deduplicate items by id/name to avoid counting showOnAllDays items multiple times
+    // (they appear once per day in the display but should only be counted once in expenses)
+    const uniqueItems = tripItems.filter((item, index, self) => 
+      index === self.findIndex(t => t.id === item.id || t.name === item.name)
+    );
+    
+    // Calculate cost for an item (estimated total)
+    const getItemCost = (item) => {
+      const baseCost = sanitizeCost(item.cost || item.entryFee || item.trackedCost);
+      // If item shows on all days, multiply by duration
+      if (item.showOnAllDays) {
+        return baseCost * tripDuration;
+      }
+      return baseCost;
+    };
+    
+    // Calculate PAID cost for an item (only count paid days for showOnAllDays items)
+    const getPaidCost = (item) => {
+      const baseCost = sanitizeCost(item.cost || item.entryFee || item.trackedCost);
+      if (item.showOnAllDays) {
+        // For showOnAllDays items, count cost based on number of paid days
+        const paidDaysCount = item.paidDays?.length || 0;
+        return baseCost * paidDaysCount;
+      }
+      // For regular items, return full cost if paid
+      return item.isPaid ? baseCost : 0;
+    };
+    
+    // Filter paid items first (from unique items)
+    // For showOnAllDays items, isPaid is true if any day is paid
+    const paidItems = uniqueItems.filter(i => i.isPaid || (i.paidDays?.length > 0));
+    
+    // Total spent = sum of PAID costs (uses paidDays for showOnAllDays items)
+    const totalSpent = uniqueItems.reduce((sum, item) => sum + getPaidCost(item), 0);
+    // Total estimated = all unique items (for budget comparison)
+    const totalEstimated = uniqueItems.reduce((sum, item) => sum + getItemCost(item), 0);
+    const budget = trip?.budget || meta?.budget || 0;
+    
+    // Category breakdown - normalize category names
+    const normalizeCategory = (item) => {
+      // Priority: category > type > expenseCategory > 'misc'
+      // (transport items have correct category but sometimes wrong expenseCategory)
+      const cat = (item.category || item.type || item.expenseCategory || 'misc').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      
+      // 1. STRONGEST SIGNAL: If we explicitly assigned this as accommodation or transport (from our own app buttons), TRUST IT 100%
+      if (cat === 'accommodation' || cat === 'hotel' || cat === 'guesthouse' || cat === 'hostel') return 'accommodation';
+      if (cat === 'transport' || cat === 'taxi' || cat === 'tuktuk') return 'transport';
+      
+      // IMPORTANT: Check name-based overrides NEXT — the AI sometimes wrong-categorizes items
+      // e.g., 'Pedro Tea Estate' gets category='food' but it's a sightseeing activity
+      // These are ALWAYS activities regardless of AI-assigned category:
+      if (name.includes('tea estate') || name.includes('tea factory') || name.includes('tea plantation') ||
+          name.includes('botanical garden') || name.includes('national park') ||
+          name.includes('waterfall') || name.includes('museum') || name.includes('fort') ||
+          name.includes('temple') || name.includes('lake') || name.includes('park') ||
+          name.includes('viewpoint') || name.includes('world\'s end') || name.includes('plains') ||
+          name.includes('safari') || name.includes('reserve') || name.includes('sanctuary')) {
+        return 'activities';
+      }
+      
+      // Name-based food detection (restaurants, bars, kitchens)
+      if (name.includes('restaurant') || name.includes('bar/') || name.includes('kitchen') ||
+          name.includes('cafe') || name.includes('bakery') || name.includes('dining')) {
+        return 'food';
+      }
+      
+      // Name-based accommodation detection
+      if (name.includes('hotel') || name.includes('inn') || name.includes('resort') ||
+          name.includes('hostel') || name.includes('guest') || name.includes('lodge') ||
+          name.includes('villa')) {
+        // But NOT if it's clearly a restaurant/bar within a hotel (e.g., 'Grand Hotel - Barnesbury Bar')
+        if (name.includes('bar') || name.includes('restaurant') || name.includes('kitchen') || name.includes('dining')) {
+          return 'food';
+        }
+        return 'accommodation';
+      }
+      
+      // Standard category normalization
+      if (cat === 'accommodation' || cat === 'hotel') return 'accommodation';
+      if (cat === 'transport' || cat === 'transportation') return 'transport';
+      if (cat === 'food' || cat === 'restaurant' || cat === 'dining') return 'food';
+      if (cat === 'misc') return 'misc';
+      // Everything else (attractions, sightseeing, culture, nature, etc.) is an activity
+      return 'activities';
+    };
+    
+    // Category breakdown using unique items - uses PAID costs (not estimated)
+    const byCategory = uniqueItems.reduce((acc, item) => {
+      const cat = normalizeCategory(item);
+      const itemCost = getPaidCost(item); // Use paid cost, not estimated
+
       if (!acc[cat]) acc[cat] = { spent: 0, items: [] };
-      acc[cat].spent += (item.cost || item.entryFee || item.trackedCost || 0);
+      acc[cat].spent += itemCost;
       acc[cat].items.push(item);
       return acc;
     }, {});
 
-    return { totalSpent, paidAmount, paidItems: paidItems.length, budget, remaining, percentageUsed, byCategory };
+    return { totalSpent, totalEstimated, paidItems: paidItems.length, budget, remaining: budget - totalEstimated, percentageUsed: budget > 0 ? Math.round((totalEstimated / budget) * 100) : 0, byCategory, tripDuration };
   };
 
   // Handle item day change
@@ -132,7 +295,14 @@ const MyItineraryPage = () => {
   };
 
   const savePrice = (itemId) => {
-    const newPrice = parseInt(editingPrice) || 0;
+    let newPrice = parseInt(editingPrice) || 0;
+    // Validate price: must be between 0 and 10 million LKR
+    const MAX_PRICE = 10000000; // 10 million LKR max
+    if (newPrice < 0) newPrice = 0;
+    if (newPrice > MAX_PRICE) {
+      newPrice = MAX_PRICE;
+      alert(`Maximum price is LKR ${MAX_PRICE.toLocaleString()}`);
+    }
     updateItemCost(itemId, newPrice);
     setEditingItemId(null);
     setEditingPrice('');
@@ -241,6 +411,88 @@ const MyItineraryPage = () => {
         </div>
       )}
 
+      {/* Add Misc Expense Modal */}
+      {showMiscModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <div className="flex items-center gap-3 text-primary-600 mb-4">
+              <span className="text-2xl">💰</span>
+              <h3 className="text-lg font-bold">Add Expense</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Name</label>
+                <input
+                  type="text"
+                  value={miscExpense.name}
+                  onChange={(e) => setMiscExpense(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Souvenirs, Tips, SIM Card"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (LKR)</label>
+                <input
+                  type="number"
+                  value={miscExpense.cost}
+                  onChange={(e) => setMiscExpense(prev => ({ ...prev, cost: e.target.value }))}
+                  placeholder="e.g., 2500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={miscExpense.category}
+                  onChange={(e) => setMiscExpense(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="misc">💰 Misc</option>
+                  <option value="activities">🎫 Activities</option>
+                  <option value="food">🍽️ Food & Dining</option>
+                  <option value="transport">🚗 Transport</option>
+                  <option value="accommodation">🏨 Accommodation</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowMiscModal(false);
+                  setMiscExpense({ name: '', cost: '', category: 'misc', tripId: '' });
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (miscExpense.name && miscExpense.cost && miscExpense.tripId) {
+                    addToSavedAndSync({
+                      name: miscExpense.name,
+                      cost: parseFloat(miscExpense.cost),
+                      entryFee: parseFloat(miscExpense.cost),
+                      category: miscExpense.category,
+                      type: miscExpense.category,
+                      tripId: miscExpense.tripId,
+                      location: 'Custom expense',
+                      description: `Manual expense: ${miscExpense.name}`,
+                      assignedDay: 1,
+                    });
+                    setShowMiscModal(false);
+                    setMiscExpense({ name: '', cost: '', category: 'misc', tripId: '' });
+                  }
+                }}
+                disabled={!miscExpense.name || !miscExpense.cost}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Add Expense
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -256,10 +508,31 @@ const MyItineraryPage = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Summary Cards */}
         {(() => {
-          const totalBudget = trips?.reduce((sum, t) => sum + (t.budget || 0), 0) || 0;
-          const totalSpent = savedItems.reduce((sum, item) => sum + (item.cost || item.entryFee || item.trackedCost || 0), 0);
+          // Only sum budgets for trips that have items currently displayed
+          const tripIdsWithItems = Object.keys(itemsByTrip);
+          const totalBudget = tripIdsWithItems.reduce((sum, tid) => {
+            const backendTrip = trips?.find(t => t.tripId === tid);
+            const budget = backendTrip?.budget || tripsMetadata?.[tid]?.budget || 0;
+            return sum + budget;
+          }, 0);
+          // Total estimated = all items (for budget comparison)
+          const totalEstimated = savedItems.reduce((sum, item) => sum + (item.cost || item.entryFee || item.trackedCost || 0), 0);
+          // Total SPENT = sum of PAID costs (respects paidDays for showOnAllDays items)
+          const totalSpent = savedItems.reduce((sum, item) => {
+            const baseCost = item.cost || item.entryFee || item.trackedCost || 0;
+            if (item.showOnAllDays) {
+              // For showOnAllDays items, multiply by number of paid days
+              const paidDaysCount = item.paidDays?.length || 0;
+              return sum + (baseCost * paidDaysCount);
+            }
+            // For regular items, add cost only if paid
+            return sum + (item.isPaid ? baseCost : 0);
+          }, 0);
+          // Count paid items: isPaid OR has any paidDays
+          const paidItemsList = savedItems.filter(i => i.isPaid || (i.paidDays?.length > 0));
+          // Budget used percentage should be based on total spent (paid items), not estimated
           const budgetUsed = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
-          const paidItems = savedItems.filter(i => i.isPaid).length;
+          const paidItems = paidItemsList.length;
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
@@ -308,30 +581,7 @@ const MyItineraryPage = () => {
           );
         })()}
 
-        {/* Budget Alerts */}
-        {budgetAlerts.length > 0 && (
-          <div className="mb-6 space-y-2">
-            {budgetAlerts.map((alert, index) => (
-              <div
-                key={index}
-                className={`flex items-center gap-3 p-3 rounded-xl ${
-                  alert.type === 'danger'
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-yellow-50 border border-yellow-200'
-                }`}
-              >
-                <span className={`text-xl ${alert.type === 'danger' ? 'text-red-500' : 'text-yellow-500'}`}>
-                  {alert.type === 'danger' ? '🔴' : '🟡'}
-                </span>
-                <span className={`text-sm font-medium ${
-                  alert.type === 'danger' ? 'text-red-700' : 'text-yellow-700'
-                }`}>
-                  {alert.message}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+
 
 
         {/* Trip-by-Trip Itinerary View */}
@@ -341,52 +591,109 @@ const MyItineraryPage = () => {
               const trip = getTrip(tripId);
               const tripItems = tripData.items;
               const tripExpense = getTripExpenseSummary(tripId, tripItems, trip);
-              const tripDuration = trip?.duration || Math.max(...tripItems.map(i => i.assignedDay || 1), 1);
+              const meta = tripsMetadata?.[tripId];
+              const tripDuration = trip?.duration || meta?.duration || Math.max(...tripItems.map(i => i.assignedDay || 1), 1);
               const daysForTrip = Array.from({ length: tripDuration }, (_, i) => i + 1);
-              const tripBudget = trip?.budget || 0;
-              const tripDestination = trip?.destination || tripId.split('-')[0] || 'Trip';
+              // Use trip.budget > tripsMetadata.budget > tripDetails.budget > 0
+              const tripBudget = trip?.budget || meta?.budget || tripDetails?.budget || 0;
+              const tripDestination = trip?.destination || meta?.destination || extractDestinationFromTripId(tripId);
+              
+              // Smart fallback: infer transportMode from saved transport item if not stored
+              const inferTransportMode = () => {
+                if (trip?.transportMode) return trip.transportMode;
+                const transportItem = tripItems.find(i => i.name?.toLowerCase().includes('transport'));
+                if (transportItem?.name) {
+                  if (transportItem.name.toLowerCase().includes('private')) return 'private';
+                  if (transportItem.name.toLowerCase().includes('car')) return 'private';
+                  if (transportItem.name.toLowerCase().includes('public')) return 'public';
+                  if (transportItem.name.toLowerCase().includes('bus') || transportItem.name.toLowerCase().includes('train')) return 'public';
+                }
+                return 'tuktuk'; // Default
+              };
+              
+              // Smart fallback: infer accommodationType from saved accommodation item if not stored
+              const inferAccommodationType = () => {
+                if (trip?.accommodationType) return trip.accommodationType;
+                const accomItem = tripItems.find(i => {
+                  const name = i.name?.toLowerCase() || '';
+                  return (
+                    i.category === 'accommodation' || 
+                    name.includes('hotel') ||
+                    name.includes('resort') ||
+                    name.includes('villa') ||
+                    name.includes('guesthouse') ||
+                    name.includes('hostel') ||
+                    name.includes('rest') ||  // CityRest, RestHouse, etc.
+                    name.includes('inn') ||
+                    name.includes('lodge') ||
+                    name.includes('homestay') ||
+                    name.includes('bnb') ||
+                    name.includes('b&b') ||
+                    name.includes('suites')
+                  );
+                });
+                if (accomItem?.cost || accomItem?.pricePerNight) {
+                  const cost = accomItem.cost || accomItem.pricePerNight || 0;
+                  if (cost >= 35000) return 'luxury';
+                  if (cost >= 10000) return 'midrange';
+                  return 'budget';
+                }
+                return 'midrange'; // Default
+              };
               
               return (
                 <div key={tripId} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-                  {/* Trip Header - Simplified */}
+                  {/* Trip Header */}
                   <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-bold flex items-center gap-2">
                         <MapPinIcon className="w-5 h-5" />
                         {tripDestination}
                       </h3>
-                      <Link
-                        to="/recommendations"
-                        state={{
-                          tripData: {
-                            destination: tripDestination,
-                            duration: trip?.duration || tripDuration,
-                            tripDuration: trip?.duration || tripDuration,
-                            groupSize: trip?.groupSize || trip?.travelers || 2,
-                            travelers: trip?.travelers || trip?.groupSize || 2,
-                            budget: tripBudget,
-                            startDate: trip?.startDate || new Date().toISOString().split('T')[0],
-                            endDate: trip?.endDate || new Date(Date.now() + tripDuration * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                            interests: trip?.interests || [],
-                          },
-                          useCache: true,
-                          isAddMoreMode: true, // Lock preferences - prevent changing params
-                        }}
-                        className="flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md"
-                      >
-                        <PlusIcon className="w-3 h-3" />
-                        Add More
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to="/recommendations"
+                          state={{
+                            tripData: {
+                              tripId,
+                              destination: tripDestination,
+                              duration: trip?.duration || tripDuration,
+                              tripDuration: trip?.duration || tripDuration,
+                              groupSize: trip?.groupSize || trip?.travelers || 2,
+                              travelers: trip?.travelers || trip?.groupSize || 2,
+                              budget: tripBudget,
+                              startDate: trip?.startDate || new Date().toISOString().split('T')[0],
+                              endDate: trip?.endDate || new Date(Date.now() + tripDuration * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                              interests: trip?.interests || [],
+                              accommodationType: inferAccommodationType(),
+                              transportMode: inferTransportMode(),
+                            },
+                            useCache: true,
+                            isAddMoreMode: true,
+                          }}
+                          className="flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md"
+                        >
+                          <PlusIcon className="w-3 h-3" />
+                          Add More
+                        </Link>
+                      </div>
                     </div>
+                    
                     <p className="text-xs opacity-80">
-                      {trip ? (
-                        <>
-                          {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {tripDuration} days • {tripItems.length} items
-                          {tripBudget > 0 && <> • Budget: {formatCurrency(tripBudget)}</>}
-                        </>
-                      ) : (
-                        <>{tripDuration} days • {tripItems.length} items</>
-                      )}
+                      {(() => {
+                        const meta = tripsMetadata?.[tripId];
+                        const tripStartDate = trip?.startDate || meta?.startDate || (tripDetails?.tripId === tripId ? tripDetails?.startDate : null);
+                        const tripEndDate = trip?.endDate || meta?.endDate || (tripDetails?.tripId === tripId ? tripDetails?.endDate : null);
+                        if (tripStartDate && tripEndDate) {
+                          return (
+                            <>
+                              {new Date(tripStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(tripEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {tripDuration} days • {tripItems.length} items
+                              {tripBudget > 0 && <> • Budget: {formatCurrency(tripBudget)}</>}
+                            </>
+                          );
+                        }
+                        return <>{tripDuration} days • {tripItems.length} items{tripBudget > 0 && <> • Budget: {formatCurrency(tripBudget)}</>}</>;
+                      })()}
                     </p>
                   </div>
                   
@@ -407,7 +714,7 @@ const MyItineraryPage = () => {
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-gray-600">Budget Used</span>
-                          <span className="text-gray-700">{formatCurrency(tripExpense.totalSpent)} / {formatCurrency(tripBudget)}</span>
+                          <span className="text-gray-700">{formatCurrency(tripExpense.totalEstimated)} / {formatCurrency(tripBudget)}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                           <div
@@ -417,10 +724,88 @@ const MyItineraryPage = () => {
                         </div>
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
                           <span>{tripExpense.percentageUsed}% used</span>
-                          <span>{formatCurrency(tripExpense.remaining)} remaining</span>
+                          <span className={tripExpense.remaining < 0 ? 'text-red-600 font-semibold' : ''}>
+                            {tripExpense.remaining < 0 ? `−${formatCurrency(Math.abs(tripExpense.remaining))} over` : `${formatCurrency(tripExpense.remaining)} remaining`}
+                          </span>
                         </div>
                       </div>
                     )}
+
+                    {/* Per-trip budget alerts */}
+                    {(() => {
+                      const tripAlerts = budgetAlerts.filter(a =>
+                        a.tripId === tripId ||
+                        (!a.tripId && Object.keys(itemsByTrip).length === 1)
+                      );
+                      // Build alerts from tripExpense directly (more precise)
+                      const alerts = [];
+                      if (tripBudget > 0) {
+                        const over = tripExpense.totalEstimated - tripBudget;
+                        const pct = tripExpense.percentageUsed;
+                        if (over > 0) {
+                          alerts.push({ type: 'danger', icon: '🔴', msg: `Over budget by ${formatCurrency(over)}` });
+                        } else if (pct >= 90) {
+                          alerts.push({ type: 'warning', icon: '🟡', msg: `${pct}% of budget used — almost full` });
+                        }
+                        // Smartly calculate category budgets dynamically
+                        const duration = tripDuration || 1;
+                        const accommodationType = trip?.accommodationType || meta?.accommodationType || inferAccommodationType();
+                        const transportMode = trip?.transportMode || meta?.transportMode || inferTransportMode();
+
+                        const accomAvgs = { budget: 10000, midrange: 35000, luxury: 150000 };
+                        const transportAvgs = { public: 1000, tuktuk: 3500, private: 12000, mix: 2500 };
+                        const effectiveAccomAvg = accomAvgs[accommodationType] || accomAvgs.midrange;
+                        const transportAvg = transportAvgs[transportMode] || transportAvgs.tuktuk;
+
+                        const maxAccomBudget = Math.round(tripBudget * 0.45);
+                        const accomEstimate = Math.min(maxAccomBudget, effectiveAccomAvg * duration);
+                        const transportEstimate = transportAvg * duration;
+                        const miscEstimate = Math.round((tripBudget / duration) * 0.05 * duration);
+
+                        const remainingAfterTransport = Math.max(0, tripBudget - transportEstimate);
+                        const remainingAfterAccom = Math.max(0, remainingAfterTransport - accomEstimate);
+
+                        const foodEstimate = Math.round(remainingAfterAccom * 0.35);
+                        const activitiesEstimate = Math.round(remainingAfterAccom * 0.55);
+
+                        // Category-level alerts
+                        const catBudgets = {
+                          accommodation: accomEstimate,
+                          food: foodEstimate,
+                          transport: transportEstimate,
+                          activities: activitiesEstimate,
+                          misc: miscEstimate,
+                        };
+                        Object.entries(catBudgets).forEach(([cat, catBudget]) => {
+                          const spent = tripExpense.byCategory[cat]?.spent || 0;
+                          if (spent > catBudget && spent > 0) {
+                            const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+                            alerts.push({ type: 'danger', icon: '🔴', msg: `${label} over budget by ${formatCurrency(spent - catBudget)}` });
+                          } else if (spent > 0 && spent / catBudget >= 0.90) {
+                            const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+                            alerts.push({ type: 'warning', icon: '🟡', msg: `${label} at ${Math.round((spent / catBudget) * 100)}% of allocated budget` });
+                          }
+                        });
+                      }
+                      if (alerts.length === 0) return null;
+                      return (
+                        <div className="mt-3 space-y-1.5">
+                          {alerts.map((a, i) => (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                                a.type === 'danger'
+                                  ? 'bg-red-50 border border-red-200 text-red-700'
+                                  : 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+                              }`}
+                            >
+                              <span>{a.icon}</span>
+                              <span>{a.msg}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     
                     {/* Category Breakdown */}
                     <div className="grid grid-cols-5 gap-2">
@@ -445,6 +830,17 @@ const MyItineraryPage = () => {
                       })}
                     </div>
                     
+                    {/* Add Expense Button */}
+                    <button
+                      onClick={() => {
+                        setMiscExpense(prev => ({ ...prev, tripId: tripId }));
+                        setShowMiscModal(true);
+                      }}
+                      className="mt-3 w-full py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>➕</span> Add Expense
+                    </button>
+                    
                     {/* Daily Budget */}
                     {tripBudget > 0 && tripDuration > 0 && (
                       <div className="mt-3 flex items-center justify-between text-xs bg-blue-50 text-blue-800 rounded-lg px-3 py-2">
@@ -459,7 +855,10 @@ const MyItineraryPage = () => {
                   {/* Days within Trip */}
                   <div className="divide-y divide-gray-100">
                     {daysForTrip.map((dayNum) => {
-                      const dayItems = tripData.byDay[dayNum] || [];
+                      // Combine regular day items with all-day items (accommodation, transport)
+                      const regularDayItems = tripData.byDay[dayNum] || [];
+                      const allDayItems = tripData.allDayItems || [];
+                      const dayItems = [...allDayItems, ...regularDayItems];
                       const startDate = trip?.startDate ? new Date(trip.startDate) : null;
                       const dayDate = startDate ? new Date(startDate.getTime() + (dayNum - 1) * 24 * 60 * 60 * 1000) : null;
                       const dayTotal = dayItems.reduce((sum, item) => sum + (item.cost || item.entryFee || 0), 0);
@@ -468,20 +867,35 @@ const MyItineraryPage = () => {
                         <div key={dayNum}>
                           <div className="bg-gray-50 px-4 py-2 flex items-center justify-between">
                             <span className="font-semibold text-gray-800">Day {dayNum} {dayDate && <span className="text-gray-500 font-normal text-sm ml-1">{dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>}</span>
-                            <span className="text-sm text-gray-600">{dayItems.length} items {dayTotal > 0 && <span className="text-green-600 font-medium">• {formatCurrency(dayTotal)}</span>}</span>
+                            <span className="text-sm text-gray-600">{regularDayItems.length} items {dayTotal > 0 && <span className="text-green-600 font-medium">• {formatCurrency(dayTotal)}</span>}</span>
                           </div>
                           
                           {dayItems.length > 0 ? (
                             <div className="divide-y divide-gray-50">
-                              {dayItems.map((item) => (
-                                <div key={item.id} className={`px-4 py-3 hover:bg-gray-50 ${item.isPaid ? 'bg-green-50/30' : ''}`}>
+                              {dayItems.map((item, itemIndex) => (
+                                <div key={`${item.id}-${dayNum}-${itemIndex}`} className={`px-4 py-3 hover:bg-gray-50 ${item.showOnAllDays ? (item.paidDays?.includes(dayNum) ? 'bg-green-50/30' : '') : (item.isPaid ? 'bg-green-50/30' : '')}`}>
                                   <div className="flex items-start gap-3">
-                                    <input type="checkbox" checked={item.isPaid || false} onChange={(e) => markItemAsPaid(item.id, e.target.checked)} className="mt-1 w-4 h-4 rounded border-gray-300 text-green-600" />
+                                    {/* Checkbox - for showOnAllDays items, track per-day; for regular items, use isPaid */}
+                                    <input 
+                                      type="checkbox" 
+                                      checked={item.showOnAllDays ? (item.paidDays?.includes(dayNum) || false) : (item.isPaid || false)} 
+                                      onChange={(e) => item.showOnAllDays ? markDayAsPaid(item.id, dayNum, e.target.checked) : markItemAsPaid(item.id, e.target.checked)} 
+                                      className="mt-1 w-4 h-4 rounded border-gray-300 text-green-600" 
+                                    />
                                     <div className="flex-1">
-                                      <span className={`font-medium ${item.isPaid ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.name}</span>
-                                      {item.isPaid && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 rounded">Paid</span>}
+                                      <span className={`font-medium ${(item.showOnAllDays ? item.paidDays?.includes(dayNum) : item.isPaid) ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.name}</span>
+                                      {(item.showOnAllDays ? item.paidDays?.includes(dayNum) : item.isPaid) && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 rounded">Paid</span>}
                                       {item.type === 'restaurant' && <span className="ml-1 text-xs bg-orange-100 text-orange-700 px-1.5 rounded">🍽️</span>}
-                                      {item.location && <div className="text-xs text-gray-500 mt-0.5"><MapPinIcon className="w-3 h-3 inline mr-1" />{item.location}</div>}
+                                      {item.location && !item.name?.toLowerCase().includes('transport') && item.expenseCategory !== 'misc' && item.location !== 'Custom expense' && (
+                                        <a
+                                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ', ' + item.location + ', Sri Lanka')}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-gray-500 mt-0.5 hover:text-blue-600 hover:underline cursor-pointer inline-flex items-center"
+                                        >
+                                          <MapPinIcon className="w-3 h-3 inline mr-1" />{item.location}
+                                        </a>
+                                      )}
                                     </div>
                                     {/* Price edit */}
                                     {editingItemId === item.id ? (
@@ -496,9 +910,16 @@ const MyItineraryPage = () => {
                                         <PencilIcon className="w-3 h-3 opacity-50" />
                                       </button>
                                     )}
-                                    <select value={item.assignedDay || 1} onChange={(e) => changeItemDay(item.id, parseInt(e.target.value))} className="text-xs bg-gray-100 rounded py-1 px-2">
-                                      {daysForTrip.map(d => <option key={d} value={d}>Day {d}</option>)}
-                                    </select>
+                                    {/* Day selector - hide for all-day items like accommodation/transport */}
+                                    {item.showOnAllDays && tripDuration > 1 ? (
+                                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">All Days</span>
+                                    ) : !item.showOnAllDays ? (
+                                      <select value={item.assignedDay || 1} onChange={(e) => changeItemDay(item.id, parseInt(e.target.value))} className="text-xs bg-gray-100 rounded py-1 px-2">
+                                        {daysForTrip.map(d => <option key={d} value={d}>Day {d}</option>)}
+                                      </select>
+                                    ) : (
+                                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Day 1</span>
+                                    )}
                                     <button onClick={() => removeFromSavedAndSync(item.name)} className="p-1 text-gray-400 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
                                   </div>
                                 </div>

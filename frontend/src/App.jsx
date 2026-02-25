@@ -22,6 +22,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import AIChatAssistant from './components/AIChatAssistant';
 import { sampleAttractions } from './data/attractions';
 import { useUserStore } from './store/userStore';
+import useItineraryStore from './store/itineraryStore';
 import { useFeatureAccess } from './hooks/useFeatureAccess';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -267,6 +268,9 @@ function HomePage() {
   // State for selected destination weather
   const [selectedDestination, setSelectedDestination] = useState('colombo');
 
+  // Get local trips metadata for date overlap checking
+  const { tripsMetadata } = useItineraryStore();
+
   // Fetch trips when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -290,23 +294,9 @@ function HomePage() {
       return;
     }
 
-    // Only save trip for authenticated users (if limit not reached)
-    if (isAuthenticated) {
-      try {
-        await saveTrip({
-          destination: formData.destination,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          budget: formData.budget,
-          groupSize: formData.groupSize,
-          interests: formData.interests || [], // Save as top-level field
-        });
-        toast.success('Trip saved to your profile!');
-      } catch (error) {
-        console.error('Failed to save trip:', error);
-        toast.error('Failed to save trip. Please try again.');
-      }
-    }
+    // NOTE: Trip is now saved to backend when items are added via itinerary sync
+    // This ensures trips only appear in Profile after user adds items
+    // (Previously: saveTrip was called here, creating empty trips prematurely)
 
     // Navigate to AI recommendations
     navigate('/recommendations', { state: { tripData: formData } });
@@ -352,7 +342,7 @@ function HomePage() {
           <p className="text-gray-500 mb-6">
             {t('home.fillDetails')}
           </p>
-          <TripPlannerForm onSubmit={handleSubmit} existingTrips={trips} />
+          <TripPlannerForm onSubmit={handleSubmit} existingTrips={trips} localTripsMetadata={tripsMetadata} />
         </div>
 
         {/* Weather Widget Section */}
@@ -400,7 +390,8 @@ function HomePage() {
         </div>
 
         {/* Saved Trips Quick Access - Links to Profile for management */}
-        {isAuthenticated && trips.length > 0 && (
+        {/* Only show trips that have saved items (not empty/premature trips) */}
+        {isAuthenticated && trips.filter(t => t.savedItems?.length > 0).length > 0 && (
           <div className="mt-12">
             <Link
               to="/profile"
@@ -413,7 +404,7 @@ function HomePage() {
                     <Calendar className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">{trips.length} Saved Trip{trips.length !== 1 ? 's' : ''}</h3>
+                    <h3 className="text-xl font-bold">{trips.filter(t => t.savedItems?.length > 0).length} Saved Trip{trips.filter(t => t.savedItems?.length > 0).length !== 1 ? 's' : ''}</h3>
                     <p className="text-white/80 text-sm">View and manage in your profile</p>
                   </div>
                 </div>

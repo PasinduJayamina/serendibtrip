@@ -69,8 +69,28 @@ const SavedTripsList = ({
     );
   }
 
+  // Filter to only show trips that have at least one saved item
+  // This ensures trips only appear after user adds items via "Add to Itinerary"
+  const tripsWithItems = trips.filter(trip => 
+    trip.savedItems && trip.savedItems.length > 0
+  );
+  
+  if (tripsWithItems.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Calendar className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          No saved trips
+        </h3>
+        <p className="text-gray-500">Add items to your itinerary to see trips here!</p>
+      </div>
+    );
+  }
+
   // Sort trips by date (most recent first)
-  const sortedTrips = [...trips].sort(
+  const sortedTrips = [...tripsWithItems].sort(
     (a, b) => new Date(b.startDate) - new Date(a.startDate)
   );
 
@@ -78,7 +98,7 @@ const SavedTripsList = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-500">
-          {trips.length} saved trip{trips.length !== 1 ? 's' : ''}
+          {tripsWithItems.length} saved trip{tripsWithItems.length !== 1 ? 's' : ''}
         </h3>
       </div>
 

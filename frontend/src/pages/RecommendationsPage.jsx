@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RecommendationPanel } from '../components/recommendations';
@@ -100,6 +100,21 @@ const INTEREST_OPTIONS = [
   { id: 'nightlife', label: 'Nightlife', emoji: '🌙' },
 ];
 
+// Accommodation type options - 2026 REALISTIC PRICES from travel sites
+const ACCOMMODATION_TYPES = [
+  { id: 'budget', label: 'Budget (Hostel/Guesthouse)', description: 'LKR 5,000-15,000/night' },
+  { id: 'midrange', label: 'Mid-range (3-star Hotel)', description: 'LKR 15,000-55,000/night' },
+  { id: 'luxury', label: 'Luxury (4-5 star Resort)', description: 'LKR 55,000-170,000/night' },
+];
+
+// Transport mode options
+const TRANSPORT_MODES = [
+  { id: 'public', label: 'Public Transport', description: 'LKR 500-2,000/day' },
+  { id: 'tuktuk', label: 'Tuk-Tuk', description: 'LKR 2,000-5,000/day' },
+  { id: 'private', label: 'Private Car', description: 'LKR 8,000-15,000/day' },
+  { id: 'mix', label: 'Mix', description: 'Flexible' },
+];
+
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   return date.toISOString().split('T')[0];
@@ -124,6 +139,12 @@ const RecommendationsPage = () => {
   const useCache = location.state?.useCache; // If true, use cached recommendations for this trip
   const isAddMoreMode = location.state?.isAddMoreMode; // If true, lock preferences (from Add More button)
 
+  // For new trips (not Add More), generate a unique suffix to prevent tripId collision
+  // when multiple trips share the same destination. This ref is stable across re-renders.
+  const newTripSuffix = useRef(
+    !isAddMoreMode && !tripData?.tripId ? `-${Date.now()}` : ''
+  );
+
   // Get cached params and recommendations from store
   const {
     params: cachedParams,
@@ -131,8 +152,11 @@ const RecommendationsPage = () => {
     hasStoredRecommendations,
     getCachedByDestination,
     hasCachedFor,
+    clearRecommendationsForDestination,
     setLoading: setStoreLoading,
     recommendationsByDestination,
+    loading: storeLoading,
+    _activeFetchId,
   } = useRecommendationsStore();
 
   // Get current destination's recommendations for map rendering
@@ -142,9 +166,19 @@ const RecommendationsPage = () => {
     ? recommendationsByDestination[currentDestinationKey]?.recommendations 
     : null;
 
-  // Initialize state - priority: tripData > cachedParams > defaults
+  // Initialize state - priority: tripData > sessionStorage > cachedParams > defaults
   const getInitialValue = (tripKey, cachedKey, defaultValue) => {
     if (tripData?.[tripKey]) return tripData[tripKey];
+    // Check sessionStorage for persisted form state (survives navigation)
+    try {
+      const saved = sessionStorage.getItem('serendibtrip-trip-prefs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed[tripKey] !== undefined && parsed[tripKey] !== '' && parsed[tripKey] !== null) {
+          return parsed[tripKey];
+        }
+      }
+    } catch (e) { /* ignore */ }
     if (cachedParams?.[cachedKey] && isValid()) return cachedParams[cachedKey];
     return defaultValue;
   };
@@ -187,6 +221,12 @@ const RecommendationsPage = () => {
   const [lastAddedItem, setLastAddedItem] = useState(null);
   const [showWeather, setShowWeather] = useState(true);
   const [showMap, setShowMap] = useState(true); // Show map by default
+  const [accommodationType, setAccommodationType] = useState(() =>
+    getInitialValue('accommodationType', 'accommodationType', 'midrange')
+  );
+  const [transportMode, setTransportMode] = useState(() =>
+    getInitialValue('transportMode', 'transportMode', 'tuktuk')
+  );
 
   // Apply trip data when it's available (from HomePage navigation or Itinerary Add More) - override cached
   useEffect(() => {
@@ -198,10 +238,54 @@ const RecommendationsPage = () => {
       // Handle both tripDuration (from form) and duration (from stored trip)
       if (tripData.tripDuration || tripData.duration) setDuration(tripData.tripDuration || tripData.duration);
       if (tripData.groupSize || tripData.travelers) setGroupSize(tripData.groupSize || tripData.travelers);
-      if (tripData.startDate) setStartDate(tripData.startDate);
-      if (tripData.endDate) setEndDate(tripData.endDate);
+      if (tripData.startDate) {
+        setStartDate(tripData.startDate);
+      }
+      if (tripData.endDate) {
+        setEndDate(tripData.endDate);
+      }
+      // Restore accommodation type and transport mode from trip data
+      if (tripData.accommodationType) setAccommodationType(tripData.accommodationType);
+      if (tripData.transportMode) setTransportMode(tripData.transportMode);
     }
   }, [tripData, useCache]);
+
+  // NEW TRIP: Clear recommendation cache so fresh AI results are generated
+  // Only for new trips (not Add More mode, which should reuse existing recommendations)
+  useEffect(() => {
+    if (!isAddMoreMode && tripData?.destination) {
+      console.log('New trip detected — clearing recommendation cache for:', tripData.destination);
+      clearRecommendationsForDestination(tripData.destination);
+      // Also clear session storage to prevent stale form data leaking between trips
+      try { sessionStorage.removeItem('serendibtrip-trip-prefs'); } catch (e) { /* ignore */ }
+    }
+  }, []); // Only on mount — runs once when page loads for a new trip
+
+  // Save form preferences to sessionStorage whenever they change (survives navigation)
+  // Note: Don't persist startDate/endDate — they should be computed fresh for new trips
+  useEffect(() => {
+    if (destination) {
+      try {
+        sessionStorage.setItem('serendibtrip-trip-prefs', JSON.stringify({
+          destination,
+          interests,
+          budget,
+          tripDuration: duration,
+          duration,
+          groupSize,
+          accommodationType,
+          transportMode,
+        }));
+      } catch (e) { /* ignore */ }
+    }
+  }, [destination, interests, budget, duration, groupSize, accommodationType, transportMode]);
+
+  // Clear stale loading state on mount - if loading is true but no active fetch is running
+  useEffect(() => {
+    if (storeLoading && !_activeFetchId) {
+      setStoreLoading(false);
+    }
+  }, []); // Only on mount
 
   // Zustand store for itinerary
   const { savedItems, addToSavedAndSync, isSaved, setTripDetails } =
@@ -236,8 +320,25 @@ const RecommendationsPage = () => {
 
   // Update trip details in store when preferences change
   useEffect(() => {
-    // Generate tripId based on destination and start date (unique per trip)
-    const tripId = `${destination}-${calculatedStartDate}`.toLowerCase().replace(/\s+/g, '-');
+    // Priority for tripId:
+    // 1. Explicit tripId from Add More navigation state (reuse existing trip)
+    // 2. In Add More mode: match existing store trip for same destination (page refresh case)
+    // 3. New trip: ALWAYS generate a new unique tripId with timestamp suffix
+    const existingStoreTripId = useItineraryStore.getState().tripDetails?.tripId;
+    const normalizedDest = destination?.toLowerCase().replace(/\s+/g, '-');
+    const storeMatchesDest = existingStoreTripId && normalizedDest && existingStoreTripId.startsWith(normalizedDest);
+    
+    let tripId;
+    if (tripData?.tripId) {
+      // Explicit tripId from navigation (Add More button passes tripId)
+      tripId = tripData.tripId;
+    } else if (isAddMoreMode && storeMatchesDest) {
+      // Add More mode: reuse existing trip for this destination
+      tripId = existingStoreTripId;
+    } else {
+      // NEW TRIP: Always generate a fresh unique tripId
+      tripId = `${destination}-${calculatedStartDate}${newTripSuffix.current}`.toLowerCase().replace(/\s+/g, '-');
+    }
     setTripDetails({
       tripId,
       destination,
@@ -246,14 +347,22 @@ const RecommendationsPage = () => {
       duration,
       budget,
       groupSize,
+      // CRITICAL: Save accommodation and transport preferences
+      accommodationType,
+      transportMode,
+      interests,
     });
   }, [
+    tripData?.tripId,
     destination,
     calculatedStartDate,
     calculatedEndDate,
     duration,
     budget,
     groupSize,
+    accommodationType,
+    transportMode,
+    interests,
     setTripDetails,
   ]);
 
@@ -279,7 +388,9 @@ const RecommendationsPage = () => {
       return;
     }
 
-    addToSavedAndSync(recommendation);
+    // Pass the AI's recommended day if available, otherwise let store auto-assign
+    const dayNumber = recommendation.recommendedDay || null;
+    addToSavedAndSync(recommendation, dayNumber);
     setLastAddedItem(recommendation.name);
     setShowAddedToast(true);
 
@@ -331,7 +442,7 @@ const RecommendationsPage = () => {
               ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')} • LKR ${budget?.toLocaleString() || 0}`
               : destination 
                 ? t('home.getAiRecommendations')
-                : t('recommendations.selectDestinationHint') || 'Select a destination to get started'}
+                : 'Select a destination to get started'}
           </p>
         </div>
       </div>
@@ -521,6 +632,52 @@ const RecommendationsPage = () => {
                 </p>
               </div>
 
+              {/* Accommodation Type */}
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                  🏨 Accommodation Type
+                  {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒</span>}
+                </label>
+                <select
+                  value={accommodationType}
+                  onChange={(e) => setAccommodationType(e.target.value)}
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
+                >
+                  {ACCOMMODATION_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {ACCOMMODATION_TYPES.find(t => t.id === accommodationType)?.description}
+                </p>
+              </div>
+
+              {/* Transport Mode */}
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                  🚗 Transport Mode
+                  {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒</span>}
+                </label>
+                <select
+                  value={transportMode}
+                  onChange={(e) => setTransportMode(e.target.value)}
+                  disabled={isAddMoreMode}
+                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
+                >
+                  {TRANSPORT_MODES.map((mode) => (
+                    <option key={mode.id} value={mode.id}>
+                      {mode.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {TRANSPORT_MODES.find(m => m.id === transportMode)?.description}
+                </p>
+              </div>
+
               {/* Interests */}
               <div className="mb-6">
                 <label className="text-sm font-medium text-gray-700 mb-3 block">
@@ -578,7 +735,11 @@ const RecommendationsPage = () => {
                   {/* Group by trip */}
                   {(() => {
                     const groupedByTrip = savedItems.reduce((acc, item) => {
-                      const tripDest = item.tripId?.split('-')[0] || destination || 'Trip';
+                      const tripParts = (item.tripId || '').split('-');
+                      const dateIdx = tripParts.findIndex(p => /^\d{4}$/.test(p));
+                      const tripDest = dateIdx > 0
+                        ? tripParts.slice(0, dateIdx).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+                        : (tripParts[0]?.charAt(0).toUpperCase() + tripParts[0]?.slice(1)) || destination || 'Trip';
                       if (!acc[tripDest]) acc[tripDest] = [];
                       acc[tripDest].push(item);
                       return acc;
@@ -648,7 +809,17 @@ const RecommendationsPage = () => {
                       destination
                     )}
                     onSelectAttraction={(attraction) => {
-                      console.log('Selected:', attraction);
+                    // Build Booking.com URL with dates and travelers from trip form
+                    const cleanHotelName = attraction.name.replace(/hotel|resort|villa|guesthouse|inn/gi, '').trim();
+                    let bookingParams = `ss=${encodeURIComponent(cleanHotelName + ', ' + destination)}&label=serendibtrip`;
+                    if (calculatedStartDate) bookingParams += `&checkin=${calculatedStartDate}`;
+                    if (calculatedEndDate) bookingParams += `&checkout=${calculatedEndDate}`;
+                    if (groupSize) bookingParams += `&group_adults=${groupSize}&req_adults=${groupSize}&no_rooms=1`;
+                    const bookingUrl = `https://www.booking.com/searchresults.html?${bookingParams}`;
+                    console.log('Selected:', attraction);
+                    console.log('Booking URL:', bookingUrl);
+                    // You might want to open this URL in a new tab or store it
+                    // window.open(bookingUrl, '_blank');
                     }}
                     onAddToItinerary={(attraction) => {
                       handleAddToItinerary({
@@ -688,6 +859,8 @@ const RecommendationsPage = () => {
               groupSize={groupSize}
               startDate={calculatedStartDate}
               endDate={calculatedEndDate}
+              accommodationType={accommodationType}
+              transportMode={transportMode}
               onAddToItinerary={handleAddToItinerary}
               autoFetch={!!tripData}
               showFilters={true}

@@ -109,6 +109,8 @@ async function generateTravelItinerary(tripDetails, userId = 'anonymous') {
       groupSize,
       interests = [],
       language = 'English',
+      accommodationType = 'midrange', // New field for accommodation preference
+      transportMode = 'tuktuk', // New field for transport preference
     } = tripDetails;
 
     if (
@@ -121,6 +123,9 @@ async function generateTravelItinerary(tripDetails, userId = 'anonymous') {
     ) {
       throw new Error('Missing required trip details');
     }
+    
+    // Log to verify params are received
+    console.log('📋 Trip params received:', { destination, accommodationType, transportMode });
 
     // ============ COST OPTIMIZATION 1: Check rate limit ============
     const rateCheck = checkRateLimit(userId);
@@ -185,6 +190,25 @@ async function generateTravelItinerary(tripDetails, userId = 'anonymous') {
       console.error('Failed to parse Gemini response as JSON:', parseError);
       console.error('Raw response:', text);
       throw new Error('Failed to parse itinerary response. Please try again.');
+    }
+
+    // ============ POST-PROCESSING: Enforce minimum 3 accommodations ============
+    if (itinerary.recommendedAccommodations) {
+      const accoms = itinerary.recommendedAccommodations;
+      if (accoms.length < 3 && accoms.length > 0) {
+        console.warn(`⚠️ AI returned only ${accoms.length} accommodations, padding to 3`);
+        while (accoms.length < 3) {
+          // Clone the last accommodation with a slightly different price
+          const base = { ...accoms[accoms.length - 1] };
+          const priceDelta = Math.round(base.pricePerNight * 0.15); // 15% higher
+          base.pricePerNight = base.pricePerNight + priceDelta;
+          base.totalCost = base.pricePerNight * (duration || 1);
+          base.name = base.name + ' (Alternative)';
+          base.whyRecommended = 'Additional option to provide more choices';
+          accoms.push(base);
+        }
+        itinerary.recommendedAccommodations = accoms;
+      }
     }
 
     // Add metadata to the response

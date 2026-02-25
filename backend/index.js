@@ -16,6 +16,7 @@ const usersRoutes = require('./routes/users');
 
 // Import utilities
 const { startCacheCleanup } = require('./utils/cacheCleanup');
+const { startReminderScheduler } = require('./services/tripReminderScheduler');
 
 const app = express();
 
@@ -42,10 +43,10 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for development
 }));
 
-// General rate limiter - 100 requests per 15 minutes
+// General rate limiter - 500 requests per 15 minutes (increased for development)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Production limit
+  max: 500, // Increased from 100 for development
   message: {
     success: false,
     message: 'Too many requests, please try again later.',
@@ -54,10 +55,10 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Auth rate limiter - 10 requests per 15 minutes
+// Auth rate limiter - 50 requests per 15 minutes (increased for development)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Production limit (strict for auth)
+  max: 50, // Increased from 10 for development (was too restrictive)
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again after 15 minutes.',
@@ -137,4 +138,7 @@ app.listen(PORT, () => {
 
   // Start cache cleanup cron jobs
   startCacheCleanup();
+
+  // Start trip reminder scheduler
+  startReminderScheduler();
 });
