@@ -247,7 +247,8 @@ const MyItineraryPage = () => {
       
       // Name-based food detection (restaurants, bars, kitchens)
       if (name.includes('restaurant') || name.includes('bar/') || name.includes('kitchen') ||
-          name.includes('cafe') || name.includes('bakery') || name.includes('dining')) {
+          name.includes('cafe') || name.includes('bakery') || name.includes('dining') ||
+          name.includes('muslim hotel')) {
         return 'food';
       }
       
@@ -343,12 +344,12 @@ const MyItineraryPage = () => {
   // Empty state
   if (savedItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white">
+        <div className="bg-gradient-to-r from-[var(--color-brand-ocean)] to-[#2a5a6e] text-white">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
-            <p className="text-secondary-200">
+            <p className="text-white/80">
               {t('itinerary.buildTrip')}
             </p>
           </div>
@@ -356,19 +357,19 @@ const MyItineraryPage = () => {
 
         {/* Empty state */}
         <div className="max-w-4xl mx-auto px-4 py-16">
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CalendarDaysIcon className="w-10 h-10 text-gray-400" />
+          <div className="card p-12 text-center">
+            <div className="w-20 h-20 bg-[var(--color-bg-sunken)] rounded-full flex items-center justify-center mx-auto mb-6">
+              <CalendarDaysIcon className="w-10 h-10 text-[var(--color-text-muted)]" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">
               {t('itinerary.empty')}
             </h2>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            <p className="text-[var(--color-text-muted)] mb-8 max-w-md mx-auto">
               {t('itinerary.emptyDescription')}
             </p>
             <Link
               to="/recommendations"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary-600 to-accent-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[var(--color-brand-ocean)] to-[#2a5a6e] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               <SparklesIcon className="w-5 h-5" />
               {t('itinerary.browseRecommendations')}
@@ -381,22 +382,22 @@ const MyItineraryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Clear confirmation modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+          <div className="card p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 text-red-600 mb-4">
               <ExclamationTriangleIcon className="w-8 h-8" />
               <h3 className="text-lg font-bold">{t('itinerary.clearAllConfirm')}</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-[var(--color-text-secondary)] mb-6">
               {t('itinerary.clearAllWarning', { count: savedItems.length })}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-4 py-2 border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] hover:bg-[var(--color-bg-sunken)]"
               >
                 {t('common.cancel')}
               </button>
@@ -414,34 +415,34 @@ const MyItineraryPage = () => {
       {/* Add Misc Expense Modal */}
       {showMiscModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+          <div className="card p-6 max-w-sm w-full">
             <div className="flex items-center gap-3 text-primary-600 mb-4">
               <span className="text-2xl">💰</span>
               <h3 className="text-lg font-bold">Add Expense</h3>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Name</label>
+                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Expense Name</label>
                 <input
                   type="text"
                   value={miscExpense.name}
                   onChange={(e) => setMiscExpense(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Souvenirs, Tips, SIM Card"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (LKR)</label>
+                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Amount (LKR)</label>
                 <input
                   type="number"
                   value={miscExpense.cost}
                   onChange={(e) => setMiscExpense(prev => ({ ...prev, cost: e.target.value }))}
                   placeholder="e.g., 2500"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Category</label>
                 <select
                   value={miscExpense.category}
                   onChange={(e) => setMiscExpense(prev => ({ ...prev, category: e.target.value }))}
@@ -461,7 +462,7 @@ const MyItineraryPage = () => {
                   setShowMiscModal(false);
                   setMiscExpense({ name: '', cost: '', category: 'misc', tripId: '' });
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-4 py-2 border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] hover:bg-[var(--color-bg-sunken)]"
               >
                 Cancel
               </button>
@@ -484,7 +485,7 @@ const MyItineraryPage = () => {
                   }
                 }}
                 disabled={!miscExpense.name || !miscExpense.cost}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-[var(--color-bg-sunken)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed"
               >
                 Add Expense
               </button>
@@ -494,11 +495,11 @@ const MyItineraryPage = () => {
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-secondary-600 to-secondary-700 text-white">
+      <div className="bg-gradient-to-r from-[var(--color-brand-ocean)] to-[#2a5a6e] text-white">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">{t('itinerary.title')}</h1>
-            <p className="text-secondary-200">
+            <p className="text-white/80">
               {t('itinerary.itemsSaved', { count: savedItems.length })}
             </p>
           </div>
@@ -535,44 +536,44 @@ const MyItineraryPage = () => {
           const paidItems = paidItemsList.length;
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
+              <div className="bg-[var(--color-bg-secondary)] rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">✈️</span>
-                  <span className="text-sm text-gray-500">Trips</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">Trips</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-800">
+                <div className="text-2xl font-bold text-[var(--color-text-primary)]">
                   {Object.keys(itemsByTrip).length}
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-purple-500">
+              <div className="bg-[var(--color-bg-secondary)] rounded-xl p-4 shadow-sm border-l-4 border-purple-500">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">📍</span>
-                  <span className="text-sm text-gray-500">{t('itinerary.totalItems')}</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">{t('itinerary.totalItems')}</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-800">
+                <div className="text-2xl font-bold text-[var(--color-text-primary)]">
                   {savedItems.length}
-                  <span className="text-sm font-normal text-gray-400 ml-1">({paidItems} paid)</span>
+                  <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-1">({paidItems} paid)</span>
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500">
+              <div className="bg-[var(--color-bg-secondary)] rounded-xl p-4 shadow-sm border-l-4 border-green-500">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">💰</span>
-                  <span className="text-sm text-gray-500">Total Budget</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">Total Budget</span>
                 </div>
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(totalBudget)}
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-orange-500">
+              <div className="bg-[var(--color-bg-secondary)] rounded-xl p-4 shadow-sm border-l-4 border-orange-500">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">💳</span>
-                  <span className="text-sm text-gray-500">Total Spent</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">Total Spent</span>
                 </div>
                 <div className="text-2xl font-bold text-orange-600">
                   {formatCurrency(totalSpent)}
                 </div>
                 {totalBudget > 0 && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
                     {budgetUsed}% of budget
                   </div>
                 )}
@@ -587,7 +588,17 @@ const MyItineraryPage = () => {
         {/* Trip-by-Trip Itinerary View */}
         {Object.keys(itemsByTrip).length > 0 && (
           <div className="space-y-8 mb-8">
-            {Object.entries(itemsByTrip).map(([tripId, tripData]) => {
+            {Object.entries(itemsByTrip)
+              .sort(([tripIdA], [tripIdB]) => {
+                const tripA = getTrip(tripIdA);
+                const tripB = getTrip(tripIdB);
+                const metaA = tripsMetadata?.[tripIdA];
+                const metaB = tripsMetadata?.[tripIdB];
+                const dateA = new Date(tripA?.startDate || metaA?.startDate || 0);
+                const dateB = new Date(tripB?.startDate || metaB?.startDate || 0);
+                return dateA - dateB; // soonest first
+              })
+              .map(([tripId, tripData]) => {
               const trip = getTrip(tripId);
               const tripItems = tripData.items;
               const tripExpense = getTripExpenseSummary(tripId, tripItems, trip);
@@ -642,9 +653,9 @@ const MyItineraryPage = () => {
               };
               
               return (
-                <div key={tripId} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+                <div key={tripId} className="bg-[var(--color-bg-secondary)] rounded-2xl shadow-lg overflow-hidden border border-[var(--color-border)]">
                   {/* Trip Header */}
-                  <div className="bg-gradient-to-r from-primary-600 to-primary-500 text-white p-4">
+                  <div className="bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-primary-hover)] text-white p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-bold flex items-center gap-2">
                         <MapPinIcon className="w-5 h-5" />
@@ -698,14 +709,14 @@ const MyItineraryPage = () => {
                   </div>
                   
                   {/* Budget & Expense Tracking - Full View */}
-                  <div className="bg-white px-4 py-4 border-b">
+                  <div className="bg-[var(--color-bg-secondary)] px-4 py-4 border-b border-[var(--color-border)]">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                         📊 Budget & Expense Tracking
                       </h4>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-green-600">✓ {tripExpense.paidItems} paid</span>
-                        <span className="text-gray-400">○ {tripItems.length - tripExpense.paidItems} unpaid</span>
+                        <span className="text-[var(--color-text-muted)]">○ {tripItems.length - tripExpense.paidItems} unpaid</span>
                       </div>
                     </div>
                     
@@ -713,16 +724,16 @@ const MyItineraryPage = () => {
                     {tripBudget > 0 && (
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Budget Used</span>
-                          <span className="text-gray-700">{formatCurrency(tripExpense.totalEstimated)} / {formatCurrency(tripBudget)}</span>
+                          <span className="text-[var(--color-text-secondary)]">Budget Used</span>
+                          <span className="text-[var(--color-text-primary)]">{formatCurrency(tripExpense.totalEstimated)} / {formatCurrency(tripBudget)}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="w-full bg-[var(--color-bg-sunken)] rounded-full h-2.5">
                           <div
                             className={`h-2.5 rounded-full ${tripExpense.percentageUsed > 90 ? 'bg-red-500' : tripExpense.percentageUsed > 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
                             style={{ width: `${Math.min(tripExpense.percentageUsed, 100)}%` }}
                           />
                         </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <div className="flex justify-between text-xs text-[var(--color-text-muted)] mt-1">
                           <span>{tripExpense.percentageUsed}% used</span>
                           <span className={tripExpense.remaining < 0 ? 'text-red-600 font-semibold' : ''}>
                             {tripExpense.remaining < 0 ? `−${formatCurrency(Math.abs(tripExpense.remaining))} over` : `${formatCurrency(tripExpense.remaining)} remaining`}
@@ -789,7 +800,7 @@ const MyItineraryPage = () => {
                       }
                       if (alerts.length === 0) return null;
                       return (
-                        <div className="mt-3 space-y-1.5">
+                        <div className="mt-3 mb-4 space-y-2">
                           {alerts.map((a, i) => (
                             <div
                               key={i}
@@ -819,10 +830,10 @@ const MyItineraryPage = () => {
                         const spent = tripExpense.byCategory[cat.key]?.spent || 0;
                         const budgetPercent = tripBudget > 0 ? Math.round((spent / tripBudget) * 100) : 0;
                         return (
-                          <div key={cat.key} className="bg-gray-50 rounded-lg p-2 text-center">
+                          <div key={cat.key} className="bg-[var(--color-bg-sunken)] rounded-lg p-2 text-center">
                             <div className="text-lg mb-0.5">{cat.icon}</div>
-                            <div className="text-[10px] text-gray-500 truncate">{cat.label}</div>
-                            <div className={`text-xs font-semibold ${spent > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                            <div className="text-[10px] text-[var(--color-text-secondary)] truncate">{cat.label}</div>
+                            <div className={`text-xs font-semibold ${spent > 0 ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'}`}>
                               {spent > 0 ? formatCurrency(spent) : 'Free'}
                             </div>
                           </div>
@@ -836,14 +847,14 @@ const MyItineraryPage = () => {
                         setMiscExpense(prev => ({ ...prev, tripId: tripId }));
                         setShowMiscModal(true);
                       }}
-                      className="mt-3 w-full py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                      className="mt-3 w-full py-2 text-sm bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-border)] transition-colors flex items-center justify-center gap-2"
                     >
                       <span>➕</span> Add Expense
                     </button>
                     
                     {/* Daily Budget */}
                     {tripBudget > 0 && tripDuration > 0 && (
-                      <div className="mt-3 flex items-center justify-between text-xs bg-blue-50 text-blue-800 rounded-lg px-3 py-2">
+                      <div className="mt-3 flex items-center justify-between text-xs bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] border border-[var(--color-brand-primary)]/20 rounded-lg px-3 py-2">
                         <span>💳 Daily budget per person:</span>
                         <span className="font-semibold">
                           {formatCurrency(Math.round(tripBudget / tripDuration / (trip?.groupSize || trip?.travelers || 2)))}
@@ -853,7 +864,7 @@ const MyItineraryPage = () => {
                   </div>
                   
                   {/* Days within Trip */}
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-[var(--color-border)]">
                     {daysForTrip.map((dayNum) => {
                       // Combine regular day items with all-day items (accommodation, transport)
                       const regularDayItems = tripData.byDay[dayNum] || [];
@@ -865,33 +876,35 @@ const MyItineraryPage = () => {
                       
                       return (
                         <div key={dayNum}>
-                          <div className="bg-gray-50 px-4 py-2 flex items-center justify-between">
-                            <span className="font-semibold text-gray-800">Day {dayNum} {dayDate && <span className="text-gray-500 font-normal text-sm ml-1">{dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>}</span>
-                            <span className="text-sm text-gray-600">{regularDayItems.length} items {dayTotal > 0 && <span className="text-green-600 font-medium">• {formatCurrency(dayTotal)}</span>}</span>
+                          <div className="bg-[var(--color-bg-sunken)] px-4 py-2 flex items-center justify-between border-y border-[var(--color-border)]">
+                            <span className="font-semibold text-[var(--color-text-primary)]">Day {dayNum} {dayDate && <span className="text-[var(--color-text-muted)] font-normal text-sm ml-1">{dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>}</span>
+                            <span className="text-sm text-[var(--color-text-secondary)]">{regularDayItems.length} items {dayTotal > 0 && <span className="text-green-600 font-medium">• {formatCurrency(dayTotal)}</span>}</span>
                           </div>
                           
                           {dayItems.length > 0 ? (
-                            <div className="divide-y divide-gray-50">
-                              {dayItems.map((item, itemIndex) => (
-                                <div key={`${item.id}-${dayNum}-${itemIndex}`} className={`px-4 py-3 hover:bg-gray-50 ${item.showOnAllDays ? (item.paidDays?.includes(dayNum) ? 'bg-green-50/30' : '') : (item.isPaid ? 'bg-green-50/30' : '')}`}>
-                                  <div className="flex items-start gap-3">
-                                    {/* Checkbox - for showOnAllDays items, track per-day; for regular items, use isPaid */}
-                                    <input 
-                                      type="checkbox" 
-                                      checked={item.showOnAllDays ? (item.paidDays?.includes(dayNum) || false) : (item.isPaid || false)} 
-                                      onChange={(e) => item.showOnAllDays ? markDayAsPaid(item.id, dayNum, e.target.checked) : markItemAsPaid(item.id, e.target.checked)} 
-                                      className="mt-1 w-4 h-4 rounded border-gray-300 text-green-600" 
-                                    />
-                                    <div className="flex-1">
-                                      <span className={`font-medium ${(item.showOnAllDays ? item.paidDays?.includes(dayNum) : item.isPaid) ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.name}</span>
-                                      {(item.showOnAllDays ? item.paidDays?.includes(dayNum) : item.isPaid) && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 rounded">Paid</span>}
-                                      {item.type === 'restaurant' && <span className="ml-1 text-xs bg-orange-100 text-orange-700 px-1.5 rounded">🍽️</span>}
-                                      {item.location && !item.name?.toLowerCase().includes('transport') && item.expenseCategory !== 'misc' && item.location !== 'Custom expense' && (
-                                        <a
+                            <div className="divide-y divide-[var(--color-border)]">
+                              {dayItems.map((item, itemIndex) => {
+                                const isChecked = item.showOnAllDays ? (item.paidDays?.includes(dayNum)) : item.isPaid;
+                                return (
+                                  <div key={`${item.id}-${dayNum}-${itemIndex}`} className={`px-4 py-3 hover:bg-[var(--color-bg-sunken)] transition-colors ${isChecked ? 'bg-emerald-500/5 opacity-80' : ''}`}>
+                                    <div className="flex items-start gap-3">
+                                      {/* Checkbox - for showOnAllDays items, track per-day; for regular items, use isPaid */}
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isChecked || false} 
+                                        onChange={(e) => item.showOnAllDays ? markDayAsPaid(item.id, dayNum, e.target.checked) : markItemAsPaid(item.id, e.target.checked)} 
+                                        className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-brand-ocean)]" 
+                                      />
+                                      <div className="flex-1">
+                                        <span className={`font-medium ${isChecked ? 'text-[var(--color-text-primary)] line-through' : 'text-[var(--color-text-primary)]'}`}>{item.name}</span>
+                                        {isChecked && <span className="ml-2 text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 rounded">Paid</span>}
+                                        {item.type === 'restaurant' && <span className="ml-1 text-xs bg-orange-500/10 text-orange-500 border border-orange-500/20 px-1.5 rounded">🍽️</span>}
+                                        {item.location && !item.name?.toLowerCase().includes('transport') && item.expenseCategory !== 'misc' && item.location !== 'Custom expense' && (
+                                          <a
                                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ', ' + item.location + ', Sri Lanka')}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="text-xs text-gray-500 mt-0.5 hover:text-blue-600 hover:underline cursor-pointer inline-flex items-center"
+                                          className="text-xs text-[var(--color-text-secondary)] mt-0.5 hover:text-[var(--color-brand-ocean)] hover:underline cursor-pointer inline-flex items-center"
                                         >
                                           <MapPinIcon className="w-3 h-3 inline mr-1" />{item.location}
                                         </a>
@@ -900,33 +913,34 @@ const MyItineraryPage = () => {
                                     {/* Price edit */}
                                     {editingItemId === item.id ? (
                                       <div className="flex items-center gap-1">
-                                        <input type="number" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} className="w-20 text-sm border rounded px-2 py-1" autoFocus />
+                                        <input type="number" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} className="w-20 text-sm border rounded px-2 py-1 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]" autoFocus />
                                         <button onClick={() => savePrice(item.id)} className="p-1 text-green-600"><CheckIcon className="w-4 h-4" /></button>
                                         <button onClick={cancelEditingPrice} className="p-1 text-red-500"><XMarkIcon className="w-4 h-4" /></button>
                                       </div>
                                     ) : (
-                                      <button onClick={() => startEditingPrice(item)} className="text-green-600 font-medium text-sm hover:bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                      <button onClick={() => startEditingPrice(item)} className="text-[var(--color-brand-ocean)] font-medium text-sm hover:bg-[var(--color-bg-sunken)] px-2 py-1 rounded flex items-center gap-1">
                                         {(item.cost || item.entryFee) > 0 ? formatCurrency(item.cost || item.entryFee) : '+ price'}
                                         <PencilIcon className="w-3 h-3 opacity-50" />
                                       </button>
                                     )}
                                     {/* Day selector - hide for all-day items like accommodation/transport */}
                                     {item.showOnAllDays && tripDuration > 1 ? (
-                                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">All Days</span>
+                                      <span className="text-xs bg-purple-500/10 text-purple-500 px-2 py-1 rounded">All Days</span>
                                     ) : !item.showOnAllDays ? (
-                                      <select value={item.assignedDay || 1} onChange={(e) => changeItemDay(item.id, parseInt(e.target.value))} className="text-xs bg-gray-100 rounded py-1 px-2">
+                                      <select value={item.assignedDay || 1} onChange={(e) => changeItemDay(item.id, parseInt(e.target.value))} className="text-xs bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)] rounded py-1 px-2 border border-[var(--color-border)]">
                                         {daysForTrip.map(d => <option key={d} value={d}>Day {d}</option>)}
                                       </select>
                                     ) : (
-                                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Day 1</span>
+                                      <span className="text-xs bg-[var(--color-bg-sunken)] text-[var(--color-text-secondary)] px-2 py-1 rounded">Day 1</span>
                                     )}
-                                    <button onClick={() => removeFromSavedAndSync(item.name)} className="p-1 text-gray-400 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => removeFromSavedAndSync(item.name)} className="p-1 text-[var(--color-text-muted)] hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           ) : (
-                            <div className="px-4 py-4 text-center text-gray-400 text-sm">No activities for Day {dayNum}</div>
+                            <div className="px-4 py-4 text-center text-[var(--color-text-muted)] text-sm">No activities for Day {dayNum}</div>
                           )}
                         </div>
                       );
@@ -940,8 +954,8 @@ const MyItineraryPage = () => {
 
 
         {/* Note about ratings */}
-        <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <p className="text-sm text-amber-800">
+        <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
+          <p className="text-sm text-amber-500 dark:text-amber-400">
             <strong>Note:</strong> {t('itinerary.ratingNote')}
           </p>
         </div>

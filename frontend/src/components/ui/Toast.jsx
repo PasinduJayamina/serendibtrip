@@ -14,24 +14,24 @@ const ToastContext = createContext(null);
 const toastTypes = {
   success: {
     icon: CheckCircle,
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-500',
-    iconColor: 'text-green-500',
-    textColor: 'text-green-800',
+    bgColor: 'bg-emerald-50 dark:bg-emerald-900/40',
+    borderColor: 'border-emerald-500',
+    iconColor: 'text-emerald-500',
+    textColor: 'text-emerald-800 dark:text-emerald-200',
   },
   error: {
     icon: AlertCircle,
-    bgColor: 'bg-red-50',
+    bgColor: 'bg-red-50 dark:bg-red-900/40',
     borderColor: 'border-red-500',
     iconColor: 'text-red-500',
-    textColor: 'text-red-800',
+    textColor: 'text-red-800 dark:text-red-200',
   },
   info: {
     icon: Info,
-    bgColor: 'bg-blue-50',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/40',
     borderColor: 'border-blue-500',
     iconColor: 'text-blue-500',
-    textColor: 'text-blue-800',
+    textColor: 'text-blue-800 dark:text-blue-200',
   },
 };
 
@@ -52,7 +52,7 @@ const ToastItem = ({ id, type, message, onClose }) => {
     <div
       role="alert"
       aria-live="polite"
-      className={`flex items-center gap-3 p-4 rounded-lg border-l-4 shadow-lg ${config.bgColor} ${config.borderColor} animate-slide-in`}
+      className={`flex items-center gap-3 p-4 rounded-xl border-l-4 shadow-xl backdrop-blur-sm ${config.bgColor} ${config.borderColor} animate-slide-in`}
     >
       <Icon
         className={`w-5 h-5 flex-shrink-0 ${config.iconColor}`}
@@ -80,7 +80,7 @@ export const ToastContainer = ({ toasts, removeToast }) => {
     <div
       aria-live="polite"
       aria-label="Notifications"
-      className="fixed top-4 right-4 z-[1200] flex flex-col gap-2 w-full max-w-sm"
+      className="fixed top-20 right-4 z-[1200] flex flex-col gap-2 w-full max-w-sm"
     >
       {toasts.map((toast) => (
         <ToastItem

@@ -98,6 +98,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(generalLimiter);
 
 // ============ ROUTES ============
+// Apply stricter rate limiting to password reset endpoints (must be before general auth routes)
+app.use('/api/auth/forgot-password', passwordResetLimiter);
+app.use('/api/auth/reset-password', passwordResetLimiter);
+
 // Apply stricter rate limiting to auth routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/weather', weatherRoutes);
@@ -116,17 +120,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ============ 404 HANDLING ============
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
 // ============ ERROR HANDLING ============
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
   });
-});
-
-// ============ 404 HANDLING ============
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
 });
 
 // ============ START SERVER ============

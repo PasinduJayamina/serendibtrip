@@ -93,7 +93,7 @@ const RecommendationCard = ({
   const renderPriceRange = () => {
     if (!priceRange) return null;
     const dollars = priceRange.length;
-    return <span className="text-green-600 font-medium">{priceRange}</span>;
+    return <span className="text-[var(--color-brand-primary)] font-medium">{priceRange}</span>;
   };
 
   // Open in Google Maps
@@ -116,10 +116,10 @@ const RecommendationCard = ({
 
   if (compact) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+      <div className="bg-[var(--color-bg-secondary)] rounded-lg border border-[var(--color-border)] p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-gray-900 truncate">{name}</h4>
+            <h4 className="font-semibold text-[var(--color-text-primary)] truncate">{name}</h4>
             <div className="flex items-center gap-2 mt-1">
               <CategoryBadge category={displayCategory} />
               {renderRating()}
@@ -140,12 +140,12 @@ const RecommendationCard = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border-2 border-gray-100 hover:border-secondary-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div className="bg-[var(--color-bg-secondary)] rounded-xl border-2 border-[var(--color-border)] hover:border-secondary-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
       {/* Header */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 leading-tight">
+            <h3 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight">
               {name}
             </h3>
             <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -161,8 +161,8 @@ const RecommendationCard = ({
               onClick={() => onToggleFavorite?.(recommendation)}
               className={`p-2 rounded-lg transition-colors ${
                 isFavorite
-                  ? 'text-red-500 bg-red-50'
-                  : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                  ? 'text-red-500 bg-red-500/10'
+                  : 'text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10'
               }`}
               title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             >
@@ -177,7 +177,7 @@ const RecommendationCard = ({
 
         {/* Description */}
         <p
-          className={`mt-3 text-gray-600 text-sm ${
+          className={`mt-3 text-[var(--color-text-secondary)] text-sm ${
             isExpanded ? '' : 'line-clamp-2'
           }`}
         >
@@ -190,7 +190,7 @@ const RecommendationCard = ({
           {location && (
             <button
               onClick={handleLocationClick}
-              className="flex items-center gap-1.5 text-gray-500 hover:text-secondary-600 transition-colors"
+              className="flex items-center gap-1.5 text-[var(--color-text-muted)] hover:text-secondary-600 transition-colors"
             >
               <MapPinIcon className="w-4 h-4" />
               <span className="truncate max-w-[150px]">{location}</span>
@@ -199,8 +199,8 @@ const RecommendationCard = ({
 
           {/* Cost - Smart pricing display */}
           <div className="flex items-center gap-1.5">
-            <CurrencyDollarIcon className={`w-4 h-4 ${priceDisplay.isFree ? 'text-green-600' : 'text-gray-500'}`} />
-            <span className={priceDisplay.isFree ? 'font-medium text-green-600' : 'text-gray-600'}>
+            <CurrencyDollarIcon className={`w-4 h-4 ${priceDisplay.isFree ? 'text-emerald-600' : 'text-[var(--color-text-muted)]'}`} />
+            <span className={priceDisplay.isFree ? 'font-medium text-emerald-600' : 'text-[var(--color-text-secondary)]'}>
               {priceDisplay.text}
             </span>
             {priceDisplay.isEstimate && !priceDisplay.isFree && (
@@ -212,7 +212,7 @@ const RecommendationCard = ({
 
           {/* Duration */}
           {duration && (
-            <div className="flex items-center gap-1.5 text-gray-500">
+            <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
               <ClockIcon className="w-4 h-4" />
               <span>{duration}</span>
             </div>
@@ -220,7 +220,7 @@ const RecommendationCard = ({
 
           {/* Cuisine (for restaurants) */}
           {cuisine && (
-            <div className="text-gray-500">
+            <div className="text-[var(--color-text-muted)]">
               <span className="font-medium">Cuisine:</span> {cuisine}
             </div>
           )}
@@ -228,34 +228,34 @@ const RecommendationCard = ({
 
         {/* Expandable content */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+          <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-3">
             {/* Best time to visit */}
             {bestTime && (
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                   Best Time
                 </span>
-                <p className="text-sm text-gray-600 mt-1">{bestTime}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">{bestTime}</p>
               </div>
             )}
 
             {/* Specialty (for restaurants) */}
             {specialty && (
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                   Specialty
                 </span>
-                <p className="text-sm text-gray-600 mt-1">{specialty}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">{specialty}</p>
               </div>
             )}
 
             {/* Tips */}
             {tips && (
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                   Tips
                 </span>
-                <p className="text-sm text-gray-600 mt-1">{tips}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">{tips}</p>
               </div>
             )}
 
@@ -295,16 +295,16 @@ const RecommendationCard = ({
 
       {/* Action bar */}
       {showActions && (
-        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+        <div className="px-5 py-3 bg-[var(--color-bg-sunken)] border-t border-[var(--color-border)] flex items-center justify-between">
           {/* Feedback buttons */}
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 mr-2">Helpful?</span>
+            <span className="text-xs text-[var(--color-text-muted)] mr-2">Helpful?</span>
             <button
               onClick={() => onThumbsUp?.(recommendation)}
               className={`p-2 rounded-lg transition-colors ${
                 feedback === 'thumbsUp'
-                  ? 'text-green-600 bg-green-100'
-                  : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                  ? 'text-[var(--color-brand-primary)] bg-[var(--color-brand-primary)]/10'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary)]/10'
               }`}
               title="This was helpful"
             >
@@ -318,8 +318,8 @@ const RecommendationCard = ({
               onClick={() => onThumbsDown?.(recommendation)}
               className={`p-2 rounded-lg transition-colors ${
                 feedback === 'thumbsDown'
-                  ? 'text-red-600 bg-red-100'
-                  : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                  ? 'text-red-600 bg-red-500/10'
+                  : 'text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-500/10'
               }`}
               title="Not helpful"
             >

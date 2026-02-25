@@ -28,25 +28,25 @@ import { filterBlacklisted } from '../../services/blacklistService';
 
 // Loading skeleton component
 const RecommendationSkeleton = () => (
-  <div className="bg-white rounded-xl border-2 border-gray-100 p-5 animate-pulse">
+  <div className="bg-[var(--color-bg-secondary)] rounded-xl border-2 border-[var(--color-border)] p-5 animate-pulse">
     <div className="flex items-start justify-between">
       <div className="flex-1">
-        <div className="h-6 bg-gray-200 rounded w-3/4 mb-3" />
+        <div className="h-6 bg-[var(--color-bg-sunken)] rounded w-3/4 mb-3" />
         <div className="flex gap-2">
-          <div className="h-5 bg-gray-200 rounded-full w-20" />
-          <div className="h-5 bg-gray-200 rounded w-16" />
+          <div className="h-5 bg-[var(--color-bg-sunken)] rounded-full w-20" />
+          <div className="h-5 bg-[var(--color-bg-sunken)] rounded w-16" />
         </div>
       </div>
-      <div className="h-10 w-10 bg-gray-200 rounded-lg" />
+      <div className="h-10 w-10 bg-[var(--color-bg-sunken)] rounded-lg" />
     </div>
     <div className="mt-4 space-y-2">
-      <div className="h-4 bg-gray-200 rounded w-full" />
-      <div className="h-4 bg-gray-200 rounded w-5/6" />
+      <div className="h-4 bg-[var(--color-bg-sunken)] rounded w-full" />
+      <div className="h-4 bg-[var(--color-bg-sunken)] rounded w-5/6" />
     </div>
     <div className="flex gap-4 mt-4">
-      <div className="h-4 bg-gray-200 rounded w-24" />
-      <div className="h-4 bg-gray-200 rounded w-20" />
-      <div className="h-4 bg-gray-200 rounded w-16" />
+      <div className="h-4 bg-[var(--color-bg-sunken)] rounded w-24" />
+      <div className="h-4 bg-[var(--color-bg-sunken)] rounded w-20" />
+      <div className="h-4 bg-[var(--color-bg-sunken)] rounded w-16" />
     </div>
   </div>
 );
@@ -67,6 +67,7 @@ const RecommendationPanel = ({
   maxResults,
   className = '',
   allowGenerate = true, // If false, disables manual generate button (must come from trip planner)
+  isAddMoreMode = false, // If true, show Refresh button (coming from "Add More" in My Itinerary)
 }) => {
   const navigate = useNavigate();
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -338,10 +339,10 @@ const RecommendationPanel = ({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-lg overflow-hidden ${className}`}
+      className={`bg-[var(--color-bg-secondary)] rounded-2xl shadow-lg border border-[var(--color-border)] overflow-hidden ${className}`}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-secondary-600 to-accent-600 px-6 py-5">
+      <div className="bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-ocean)] px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
@@ -351,7 +352,7 @@ const RecommendationPanel = ({
               <h2 className="text-xl font-bold text-white">
                 AI Recommendations
               </h2>
-              <p className="text-secondary-200 text-sm">
+              <p className="text-white/80 text-sm font-medium">
                 {destination
                   ? `Personalized picks for ${destination}`
                   : 'Enter destination to get recommendations'}
@@ -361,21 +362,23 @@ const RecommendationPanel = ({
 
           <div className="flex items-center gap-2">
             {hasValidCache && !loading && (
-              <span className="px-2 py-1 bg-white/20 text-white/80 text-xs rounded-full">
+              <span className="px-2 py-1 bg-white/20 text-white/90 text-xs font-semibold rounded-full shadow-sm">
                 Cached
               </span>
             )}
-            <button
-              onClick={() => refetch()}
-              disabled={loading || !destination}
-              className="flex items-center gap-1 px-3 py-1.5 text-white/90 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50 text-sm"
-              title="Get fresh AI recommendations"
-            >
-              <ArrowPathIcon
-                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-              />
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
+            {isAddMoreMode && (
+              <button
+                onClick={() => refetch()}
+                disabled={loading || !destination}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-white/90 font-medium hover:text-white bg-white/10 hover:bg-white/25 rounded-lg transition-all shadow-sm disabled:opacity-50 text-sm"
+                title="Get fresh AI recommendations"
+              >
+                <ArrowPathIcon
+                  className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                />
+                {loading ? 'Loading...' : 'Refresh'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -392,13 +395,13 @@ const RecommendationPanel = ({
 
         {/* Message when allowGenerate is false - redirect to Home */}
         {!autoFetch && !recommendations && !loading && !allowGenerate && (
-          <div className="mt-4 p-4 bg-white/10 rounded-lg text-center">
-            <p className="text-white/90 mb-3">
+          <div className="mt-4 p-5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-2xl text-center shadow-inner">
+            <p className="text-[var(--color-text-primary)] font-medium mb-3">
               Plan your trip to get AI recommendations
             </p>
             <button
               onClick={() => navigate('/')}
-              className="px-6 py-2 bg-white text-secondary-600 rounded-lg font-semibold hover:bg-secondary-50 transition-colors"
+              className="px-6 py-2.5 bg-[var(--color-brand-primary)] text-white rounded-lg font-semibold hover:bg-[var(--color-brand-ocean)] transition-all shadow-md hover:shadow-lg"
             >
               Go to Trip Planner
             </button>
@@ -408,28 +411,28 @@ const RecommendationPanel = ({
 
       {/* Accommodations Section - Phase 3 */}
       {recommendations && accommodations.length > 0 && (
-        <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+        <div className="px-6 py-4 bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)]">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               🏨 Recommended Accommodations
-              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Optional</span>
+              <span className="text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full">Optional</span>
             </h3>
           </div>
           
           {/* Budget Warning - show if budget is insufficient */}
           {recommendations.budgetWarning?.insufficient && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <div className="flex items-start gap-2">
                 <span className="text-red-500 text-lg">⚠️</span>
                 <div>
-                  <p className="text-sm text-red-700 font-medium">Budget Insufficient for {accommodationType} Accommodation</p>
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-sm text-red-500 font-medium">Budget Insufficient for {accommodationType} Accommodation</p>
+                  <p className="text-xs text-red-400 mt-1">
                     {recommendations.budgetWarning.message || 
                       `You need LKR ${(recommendations.budgetWarning.shortfall || 0).toLocaleString()} more. 
                        Recommended budget: LKR ${(recommendations.budgetWarning.recommendedBudget || 0).toLocaleString()}`
                     }
                   </p>
-                  <p className="text-xs text-red-500 mt-2 italic">
+                  <p className="text-xs text-red-400/80 mt-2 italic">
                     💡 Consider increasing your budget or choosing a lower accommodation type.
                   </p>
                 </div>
@@ -445,11 +448,11 @@ const RecommendationPanel = ({
               return (
                 <div 
                   key={index} 
-                  className={`bg-white rounded-xl p-4 border transition-all shadow-sm hover:shadow-md ${isHotelSaved ? 'border-green-300 bg-green-50' : 'border-amber-200 hover:border-amber-400'}`}
+                  className={`bg-[var(--color-bg-secondary)] rounded-xl p-4 border transition-all shadow-sm hover:shadow-md ${isHotelSaved ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-[var(--color-border)] hover:border-amber-500/50'}`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">{hotel.name}</h4>
+                      <h4 className="font-semibold text-[var(--color-text-primary)]">{hotel.name}</h4>
                       {(() => {
                         // Append common hotel parameters to Google Maps link
                         const mapsQuery = hotel.name + ', ' + destination + ', Sri Lanka';
@@ -459,7 +462,7 @@ const RecommendationPanel = ({
                             href={mapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 mt-1"
+                            className="text-sm text-[var(--color-brand-ocean)] hover:text-[var(--color-brand-primary)] hover:underline flex items-center gap-1 mt-1"
                           >
                             📍 {hotel.location}
                           </a>
@@ -468,27 +471,27 @@ const RecommendationPanel = ({
                       {hotel.amenities && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {hotel.amenities.slice(0, 3).map((amenity, i) => (
-                            <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                            <span key={i} className="text-xs bg-[var(--color-bg-sunken)] border border-[var(--color-border)] text-[var(--color-text-secondary)] px-2 py-0.5 rounded">
                               {amenity}
                             </span>
                           ))}
                         </div>
                       )}
                       {hotel.whyRecommended && (
-                        <p className="text-xs text-amber-700 mt-2 italic">
+                        <p className="text-xs text-amber-500 mt-2 italic">
                           {hotel.whyRecommended}
                         </p>
                       )}
                     </div>
                     <div className="text-right ml-3">
-                      <div className="text-lg font-bold text-amber-600">
+                      <div className="text-lg font-bold text-amber-500">
                         LKR {(hotel.pricePerNight || 0).toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500">/night</div>
+                      <div className="text-xs text-[var(--color-text-secondary)]">/night</div>
                       {hotel.rating && (
                         <div className="flex items-center gap-1 mt-1 justify-end">
                           <span className="text-yellow-500">★</span>
-                          <span className="text-sm font-medium">{hotel.rating}</span>
+                          <span className="text-sm font-medium text-[var(--color-text-primary)]">{hotel.rating}</span>
                         </div>
                       )}
                     </div>
@@ -519,7 +522,7 @@ const RecommendationPanel = ({
                           href={bookingUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 text-center px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-xs font-medium transition-colors"
+                          className="flex-1 text-center px-2 py-1.5 bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary)]/20 border border-[var(--color-brand-primary)]/20 rounded text-xs font-medium transition-colors"
                           title={`Search for ${cleanHotelName} on Booking.com`}
                         >
                           🔍 Verify on Booking.com
@@ -529,10 +532,10 @@ const RecommendationPanel = ({
                   })()}
                   
                   {/* Add to Itinerary button */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
-                      Total: <span className="font-semibold text-amber-600">LKR {totalCost.toLocaleString()}</span> 
-                      <span className="text-gray-400"> ({duration || 1} night{(duration || 1) > 1 ? 's' : ''})</span>
+                  <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex items-center justify-between">
+                    <div className="text-xs text-[var(--color-text-secondary)]">
+                      Total: <span className="font-semibold text-amber-500">LKR {totalCost.toLocaleString()}</span> 
+                      <span className="text-[var(--color-text-muted)]"> ({duration || 1} night{(duration || 1) > 1 ? 's' : ''})</span>
                     </div>
                     <button
                       onClick={() => onAddToItinerary && onAddToItinerary({
@@ -548,7 +551,7 @@ const RecommendationPanel = ({
                       disabled={isHotelSaved}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
                         isHotelSaved 
-                          ? 'bg-green-100 text-green-600 cursor-default' 
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 cursor-default' 
                           : 'bg-amber-500 text-white hover:bg-amber-600'
                       }`}
                     >
@@ -612,7 +615,7 @@ const RecommendationPanel = ({
 
       {/* Transport & Budget Summary - Phase 3 */}
       {recommendations && (transportEstimate || budgetBreakdown) && (
-        <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-100">
+        <div className="px-6 py-3 bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             {transportEstimate && (() => {
               // Use user's selected transportMode, fallback to AI's estimate mode
@@ -653,14 +656,14 @@ const RecommendationPanel = ({
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🚗</span>
                   <div>
-                    <span className="text-sm font-medium text-gray-700">Transport: </span>
-                    <span className="text-sm text-blue-600 font-semibold">
+                    <span className="text-sm font-medium text-[var(--color-text-secondary)]">Transport: </span>
+                    <span className="text-sm text-[var(--color-brand-ocean)] font-semibold">
                       ~LKR {(transportEstimate.dailyCost || 0).toLocaleString()}/day
                     </span>
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-xs text-[var(--color-text-muted)] ml-1">
                       ({transportName})
                     </span>
-                    <span className="text-xs text-gray-400 ml-2">
+                    <span className="text-xs text-[var(--color-text-secondary)] ml-2">
                       Total: LKR {transportTotalCost.toLocaleString()} ({tripDuration} days)
                     </span>
                   </div>
@@ -669,8 +672,8 @@ const RecommendationPanel = ({
                     disabled={hasTransportSaved}
                     className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                       hasTransportSaved 
-                        ? 'bg-green-100 text-green-600 cursor-default' 
-                        : 'bg-blue-500 text-white hover:bg-blue-600'
+                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                        : 'bg-[var(--color-brand-ocean)]/10 text-[var(--color-brand-ocean)] border border-[var(--color-brand-ocean)]/20 hover:bg-[var(--color-brand-ocean)]/20'
                     }`}
                   >
                     {hasTransportSaved ? '✓ Added' : '+ Add'}
@@ -679,18 +682,18 @@ const RecommendationPanel = ({
               );
             })()}
             {budgetBreakdown && (
-              <div className="flex items-center gap-4 text-xs flex-wrap">
-                <span className="text-gray-500">Estimated Budget:</span>
-                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+              <div className="flex items-center gap-4 text-xs flex-wrap mt-2 sm:mt-0">
+                <span className="text-[var(--color-text-secondary)] font-medium">Estimated Budget:</span>
+                <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2.5 py-1 rounded-md">
                   🏨 {(budgetBreakdown.accommodation || 0).toLocaleString()}
                 </span>
-                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                <span className="bg-orange-500/10 text-orange-500 border border-orange-500/20 px-2.5 py-1 rounded-md">
                   🍽️ {(budgetBreakdown.food || 0).toLocaleString()}
                 </span>
-                <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
+                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2.5 py-1 rounded-md">
                   🚗 {(budgetBreakdown.transport || 0).toLocaleString()}
                 </span>
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                <span className="bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] border border-[var(--color-brand-primary)]/20 px-2.5 py-1 rounded-md">
                   🎫 {(budgetBreakdown.activities || 0).toLocaleString()}
                 </span>
               </div>
@@ -782,15 +785,17 @@ const RecommendationPanel = ({
         {/* Loading state */}
         {loading && (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3 py-4">
-              <div className="w-8 h-8 border-4 border-secondary-200 border-t-secondary-600 rounded-full animate-spin" />
-              <p className="text-gray-600">
+            <div className="flex items-center justify-center gap-3 py-6 relative z-10">
+              <div className="w-8 h-8 border-4 border-[var(--color-brand-primary)] opacity-30 border-t-[var(--color-brand-primary)] opacity-100 rounded-full animate-spin" />
+              <p className="text-[var(--color-text-primary)] font-medium">
                 Generating personalized recommendations...
               </p>
             </div>
-            {[1, 2, 3].map((i) => (
-              <RecommendationSkeleton key={i} />
-            ))}
+            <div className="opacity-50 pointer-events-none">
+              {[1, 2, 3].map((i) => (
+                <RecommendationSkeleton key={i} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -817,13 +822,13 @@ const RecommendationPanel = ({
         {/* Empty state */}
         {!loading && !error && !recommendations && destination && (
           <div className="text-center py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary-100 rounded-full mb-4">
-              <SparklesIcon className="w-8 h-8 text-secondary-500" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-full mb-4 shadow-sm">
+              <SparklesIcon className="w-8 h-8 text-[var(--color-brand-primary)]" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
               Ready to Explore {destination}?
             </h3>
-            <p className="text-gray-500 mb-4 max-w-md mx-auto">
+            <p className="text-[var(--color-text-secondary)] mb-4 max-w-md mx-auto">
               Click the button above to generate AI-powered recommendations
               tailored to your interests and budget.
             </p>

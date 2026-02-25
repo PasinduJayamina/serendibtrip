@@ -51,32 +51,32 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-sand-50 to-primary-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-bg-sunken)]">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold font-display bg-gradient-to-r from-secondary-600 to-accent-500 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold font-display bg-gradient-to-r from-[var(--color-brand-primary)] to-[var(--color-brand-ocean)] bg-clip-text text-transparent">
               {t('common.appName')}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-[var(--color-text-muted)] text-sm mt-1">
               {t('common.tagline')}
             </p>
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+        <div className="card p-8 border border-[var(--color-border)] shadow-xl bg-[var(--color-bg-primary)]">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">{t('auth.welcomeBack')}</h2>
-            <p className="text-gray-500 mt-1">
+            <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">{t('auth.welcomeBack')}</h2>
+            <p className="text-[var(--color-text-muted)] mt-1">
               {t('auth.signInToContinue')}
             </p>
           </div>
 
           {/* Error Alert */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-500 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {t('auth.loginFailed')}
             </div>
@@ -85,11 +85,11 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
                 {t('auth.emailAddress')}
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
                 <input
                   type="email"
                   {...register('email', {
@@ -99,8 +99,8 @@ const LoginPage = () => {
                       message: t('auth.emailAddress'),
                     },
                   })}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)] focus:border-transparent outline-none transition-all ${
+                    errors.email ? 'border-red-500 focus:ring-red-500' : 'border-[var(--color-border)]'
                   }`}
                   placeholder={t('auth.emailPlaceholder')}
                 />
@@ -114,25 +114,25 @@ const LoginPage = () => {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
                 {t('auth.password')}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password', {
                     required: t('auth.password'),
                   })}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)] focus:border-transparent outline-none transition-all ${
+                    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-[var(--color-border)]'
                   }`}
                   placeholder={t('auth.passwordPlaceholder')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -153,7 +153,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-secondary-600 hover:text-secondary-700 hover:underline"
+                className="text-sm text-[var(--color-brand-primary)] hover:text-[var(--color-brand-ocean)] hover:underline"
               >
                 {t('auth.forgotPassword')}
               </button>
@@ -163,7 +163,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-gradient-to-r from-secondary-500 to-secondary-600 text-white rounded-xl font-medium hover:from-secondary-600 hover:to-secondary-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-[var(--color-brand-primary)] text-white rounded-xl font-medium hover:bg-[var(--color-brand-ocean)] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
@@ -182,19 +182,19 @@ const LoginPage = () => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-[var(--color-border)]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">or</span>
+              <span className="px-4 bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]">or</span>
             </div>
           </div>
 
           {/* Sign Up Link */}
-          <p className="text-center text-gray-600">
+          <p className="text-center text-[var(--color-text-secondary)]">
             {t('auth.noAccount')}{' '}
             <Link
               to="/register"
-              className="text-secondary-600 font-medium hover:text-secondary-700 hover:underline"
+              className="text-[var(--color-brand-primary)] font-medium hover:text-[var(--color-brand-ocean)] hover:underline"
             >
               {t('auth.createAccount')}
             </Link>
@@ -202,7 +202,7 @@ const LoginPage = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-400 mt-6">
+        <p className="text-center text-sm text-[var(--color-text-muted)] mt-6">
           {t('auth.termsAgreement')}
         </p>
     </div>

@@ -5,24 +5,18 @@ import {
   Marker,
   Popup,
   useMap,
-  Circle,
   Polyline,
 } from 'react-leaflet';
 import L from 'leaflet';
 import {
-  Search,
-  Filter,
   MapPin,
-  Star,
-  Clock,
-  DollarSign,
+  Navigation,
   Plus,
   Minus,
-  Navigation,
-  Locate,
-  X,
-  Route,
+  CalendarDays,
+  MapPinOff,
 } from 'lucide-react';
+import { useItineraryStore } from '../store/itineraryStore';
 
 // Import Leaflet CSS directly
 import 'leaflet/dist/leaflet.css';
@@ -39,564 +33,376 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Category colors and icons
-const CATEGORY_CONFIG = {
-  culture: { color: '#8B5CF6', emoji: '🏛️', label: 'Culture' },
-  nature: { color: '#10B981', emoji: '🌿', label: 'Nature' },
-  beach: { color: '#0EA5E9', emoji: '🏖️', label: 'Beach' },
-  adventure: { color: '#F59E0B', emoji: '🏔️', label: 'Adventure' },
-  wildlife: { color: '#84CC16', emoji: '🐘', label: 'Wildlife' },
-  history: { color: '#A855F7', emoji: '📜', label: 'History' },
-  food: { color: '#EF4444', emoji: '🍛', label: 'Food' },
-  religious: { color: '#EC4899', emoji: '🛕', label: 'Religious' },
-};
-
 // Sri Lanka center coordinates
 const SRI_LANKA_CENTER = [7.8731, 80.7718];
 const DEFAULT_ZOOM = 8;
 
+// Day colors palette — distinct, colorblind-friendly
+const DAY_COLORS = [
+  '#3B82F6', // Day 1 — Blue
+  '#10B981', // Day 2 — Emerald
+  '#F59E0B', // Day 3 — Amber
+  '#8B5CF6', // Day 4 — Violet
+  '#EC4899', // Day 5 — Pink
+  '#06B6D4', // Day 6 — Cyan
+  '#EF4444', // Day 7 — Red
+  '#84CC16', // Day 8 — Lime
+  '#F97316', // Day 9 — Orange
+  '#6366F1', // Day 10 — Indigo
+];
+
 /**
- * Create custom marker icon
+ * Create a day-colored circle marker icon
  */
-const createCustomIcon = (category, isSelected = false) => {
-  const config = CATEGORY_CONFIG[category] || { color: '#6B7280', emoji: '📍' };
-  const size = isSelected ? 40 : 32;
+function createDayIcon(dayNumber, isAccommodation = false) {
+  const color = DAY_COLORS[(dayNumber - 1) % DAY_COLORS.length];
+  const size = isAccommodation ? 32 : 26;
+  const emoji = isAccommodation ? '🏨' : '';
+  const label = isAccommodation ? '' : dayNumber;
 
   return L.divIcon({
-    className: 'custom-marker',
+    className: 'trip-marker',
     html: `
       <div style="
-        background-color: ${config.color};
         width: ${size}px;
         height: ${size}px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
+        border-radius: 50%;
+        background: ${color};
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border: 3px solid white;
-        ${isSelected ? 'animation: pulse 1s infinite;' : ''}
-      ">
-        <span style="transform: rotate(45deg); font-size: ${
-          isSelected ? '18px' : '14px'
-        };">
-          ${config.emoji}
-        </span>
-      </div>
+        color: white;
+        font-weight: 700;
+        font-size: ${isAccommodation ? '14px' : '11px'};
+        line-height: 1;
+      ">${emoji || label}</div>
     `,
     iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 4)],
   });
-};
+}
 
 /**
- * Calculate distance between two coordinates (Haversine formula)
+ * Map controller — auto-fits bounds to all markers
  */
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-/**
- * Star rating component
- */
-const StarRating = ({ rating, size = 'sm' }) => {
-  const sizeClass = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`${sizeClass} ${
-            star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-          }`}
-        />
-      ))}
-      <span className="ml-1 text-xs text-gray-600">{rating.toFixed(1)}</span>
-    </div>
-  );
-};
-
-/**
- * Map controller for programmatic map interactions
- */
-const MapController = ({ center, zoom, userLocation }) => {
+function MapFitter({ positions }) {
   const map = useMap();
 
-  // Invalidate map size on mount and when container changes
   useEffect(() => {
-    // Small delay to ensure container is fully rendered
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
+    if (positions.length === 0) return;
+    if (positions.length === 1) {
+      map.setView(positions[0], 13);
+    } else {
+      const bounds = L.latLngBounds(positions);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    }
+  }, [positions, map]);
 
-    // Also invalidate on window resize
-    const handleResize = () => {
-      map.invalidateSize();
-    };
+  // Invalidate size on mount to fix grey tiles
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 200);
+    const handleResize = () => map.invalidateSize();
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, [map]);
 
-  useEffect(() => {
-    if (center) {
-      map.flyTo(center, zoom || map.getZoom(), { duration: 1 });
-    }
-  }, [center, zoom, map]);
-
   return null;
-};
+}
 
 /**
- * Custom zoom controls component - renders inside MapContainer
+ * Custom zoom controls
  */
-const ZoomControls = () => {
+function ZoomControls() {
   const map = useMap();
-
   return (
-    <div
-      className="leaflet-top leaflet-left"
-      style={{ marginTop: '60px', marginLeft: '10px' }}
-    >
-      <div className="leaflet-control">
-        <div className="flex flex-col bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md overflow-hidden">
-          <button
-            onClick={() => map.zoomIn()}
-            className="p-2 hover:bg-gray-100 transition-colors border-b border-gray-200"
-            title="Zoom in"
-          >
-            <Plus className="w-4 h-4 text-gray-700" />
-          </button>
-          <button
-            onClick={() => map.zoomOut()}
-            className="p-2 hover:bg-gray-100 transition-colors"
-            title="Zoom out"
-          >
-            <Minus className="w-4 h-4 text-gray-700" />
-          </button>
-        </div>
-      </div>
+    <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-1">
+      <button
+        onClick={() => map.zoomIn()}
+        className="w-8 h-8 bg-[var(--color-bg-secondary)] rounded-lg shadow-md flex items-center justify-center hover:bg-[var(--color-bg-sunken)] transition-colors border border-[var(--color-border)]"
+      >
+        <Plus className="w-4 h-4 text-[var(--color-text-primary)]" />
+      </button>
+      <button
+        onClick={() => map.zoomOut()}
+        className="w-8 h-8 bg-[var(--color-bg-secondary)] rounded-lg shadow-md flex items-center justify-center hover:bg-[var(--color-bg-sunken)] transition-colors border border-[var(--color-border)]"
+      >
+        <Minus className="w-4 h-4 text-[var(--color-text-primary)]" />
+      </button>
     </div>
   );
-};
+}
 
 /**
- * Locate user button component
+ * TripMap Component
+ * Shows the user's saved itinerary items as day-colored pins on a map.
+ * Connects same-day items with polyline routes.
  */
-const LocateButton = ({ onLocate, isLocating }) => {
-  const map = useMap();
+const AttractionMap = ({ destination = '', className = '' }) => {
+  const { savedItems, tripDetails } = useItineraryStore();
+  const currentTripId = tripDetails?.tripId;
 
-  const handleLocate = () => {
-    if (navigator.geolocation) {
-      onLocate(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          map.flyTo([latitude, longitude], 14);
-          onLocate(false, { lat: latitude, lng: longitude });
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          onLocate(false, null);
-        }
-      );
-    }
+  // Sri Lanka bounding box — reject coordinates outside the island
+  const isInSriLanka = (lat, lng) => {
+    return lat >= 5.8 && lat <= 10.0 && lng >= 79.3 && lng <= 82.1;
   };
 
-  return (
-    <button
-      onClick={handleLocate}
-      className="absolute bottom-24 right-3 z-[1000] p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors"
-      title="Find my location"
-    >
-      <Locate
-        className={`w-5 h-5 text-secondary-500 ${
-          isLocating ? 'animate-pulse' : ''
-        }`}
-      />
-    </button>
-  );
-};
+  // Filter items for the current trip that have valid coordinates within Sri Lanka
+  const tripItems = useMemo(() => {
+    if (!currentTripId) return [];
+    return savedItems
+      .filter((item) => item.tripId === currentTripId)
+      .filter((item) => {
+        const coords = item.coordinates || item.location?.coordinates;
+        return coords && coords.lat && coords.lng && isInSriLanka(coords.lat, coords.lng);
+      });
+  }, [savedItems, currentTripId]);
 
-/**
- * AttractionMap Component
- * Interactive map displaying attractions in Sri Lanka
- */
-const AttractionMap = ({
-  attractions = [],
-  onSelectAttraction,
-  onAddToItinerary,
-  userLocation = null,
-  className = '',
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedAttraction, setSelectedAttraction] = useState(null);
-  const [mapCenter, setMapCenter] = useState(SRI_LANKA_CENTER);
-  const [isLocating, setIsLocating] = useState(false);
-  const [currentUserLocation, setCurrentUserLocation] = useState(userLocation);
-  const [showRoute, setShowRoute] = useState(false);
-  const [routeAttractions, setRouteAttractions] = useState([]);
-
-  // Filter attractions based on search and category
-  const filteredAttractions = useMemo(() => {
-    return attractions.filter((attraction) => {
-      const matchesSearch =
-        attraction.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        attraction.description
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === 'all' || attraction.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+  // Group by day for polylines and legend
+  const itemsByDay = useMemo(() => {
+    const grouped = {};
+    tripItems.forEach((item) => {
+      const day = item.showOnAllDays ? 'all' : (item.assignedDay || 1);
+      if (!grouped[day]) grouped[day] = [];
+      grouped[day].push(item);
     });
-  }, [attractions, searchQuery, selectedCategory]);
+    return grouped;
+  }, [tripItems]);
 
-  // Filter route attractions to only show visible ones
-  const visibleRouteAttractions = useMemo(() => {
-    return routeAttractions.filter((routeAttr) =>
-      filteredAttractions.some((filtered) => filtered.id === routeAttr.id)
+  // All marker positions for auto-fit
+  const allPositions = useMemo(() => {
+    return tripItems.map((item) => {
+      const coords = item.coordinates || item.location?.coordinates;
+      return [coords.lat, coords.lng];
+    });
+  }, [tripItems]);
+
+  // Polylines for each day (connect items on the same day)
+  const dayPolylines = useMemo(() => {
+    const lines = [];
+    Object.entries(itemsByDay).forEach(([day, items]) => {
+      if (day === 'all' || items.length < 2) return;
+      const dayNum = parseInt(day);
+      const color = DAY_COLORS[(dayNum - 1) % DAY_COLORS.length];
+      const coords = items.map((item) => {
+        const c = item.coordinates || item.location?.coordinates;
+        return [c.lat, c.lng];
+      });
+      lines.push({ day: dayNum, color, positions: coords });
+    });
+    return lines;
+  }, [itemsByDay]);
+
+  // Unique days for the legend
+  const activeDays = useMemo(() => {
+    const days = new Set();
+    tripItems.forEach((item) => {
+      if (!item.showOnAllDays) days.add(item.assignedDay || 1);
+    });
+    return [...days].sort((a, b) => a - b);
+  }, [tripItems]);
+
+  const duration = tripDetails?.duration || 1;
+  const startDateStr = tripDetails?.startDate;
+
+  const getDayLabel = (dayNum) => {
+    if (startDateStr) {
+      const d = new Date(startDateStr);
+      d.setDate(d.getDate() + dayNum - 1);
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    return `Day ${dayNum}`;
+  };
+
+  // Empty state
+  if (tripItems.length === 0) {
+    return (
+      <div className={`relative flex flex-col h-full ${className}`}>
+        {/* Still show the map but with an overlay prompt */}
+        <div className="relative flex-1 min-h-[400px]">
+          <MapContainer
+            center={SRI_LANKA_CENTER}
+            zoom={DEFAULT_ZOOM}
+            className="absolute inset-0"
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+            attributionControl={true}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+            <ZoomControls />
+          </MapContainer>
+          {/* Empty state overlay */}
+          <div className="absolute inset-0 z-[500] flex items-center justify-center pointer-events-none">
+            <div className="bg-[var(--color-bg-secondary)]/95 backdrop-blur-sm rounded-2xl p-8 max-w-xs text-center shadow-xl border border-[var(--color-border)] pointer-events-auto">
+              <div className="w-14 h-14 rounded-full bg-[var(--color-bg-sunken)] flex items-center justify-center mx-auto mb-4">
+                <MapPinOff className="w-7 h-7 text-[var(--color-text-muted)]" />
+              </div>
+              <h3 className="font-semibold text-[var(--color-text-primary)] mb-2">
+                No Pins Yet
+              </h3>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                Add activities and places from the AI recommendations to see them pinned on your trip map.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     );
-  }, [routeAttractions, filteredAttractions]);
-
-  // Calculate distances if user location is available
-  const attractionsWithDistance = useMemo(() => {
-    if (!currentUserLocation) return filteredAttractions;
-    return filteredAttractions.map((attraction) => ({
-      ...attraction,
-      distance: calculateDistance(
-        currentUserLocation.lat,
-        currentUserLocation.lng,
-        attraction.coordinates.lat,
-        attraction.coordinates.lng
-      ),
-    }));
-  }, [filteredAttractions, currentUserLocation]);
-
-  // Handle marker click
-  const handleMarkerClick = (attraction) => {
-    setSelectedAttraction(attraction);
-    onSelectAttraction?.(attraction);
-  };
-
-  // Handle add to itinerary
-  const handleAddToItinerary = (attraction) => {
-    onAddToItinerary?.(attraction);
-    // Add to route
-    if (!routeAttractions.find((a) => a.id === attraction.id)) {
-      setRouteAttractions([...routeAttractions, attraction]);
-    }
-  };
-
-  // Handle locate user
-  const handleLocate = (locating, location) => {
-    setIsLocating(locating);
-    if (location) {
-      setCurrentUserLocation(location);
-    }
-  };
-
-  // Toggle route display
-  const toggleRoute = () => {
-    setShowRoute(!showRoute);
-  };
-
-  // Clear route
-  const clearRoute = () => {
-    setRouteAttractions([]);
-    setShowRoute(false);
-  };
-
-  // Map tile layer
-  const tileLayer = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  const tileAttribution =
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  }
 
   return (
-    <div
-      className={`relative rounded-2xl shadow-lg overflow-hidden bg-white ${className}`}
-    >
-      {/* Search and Filter Bar */}
-      <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col sm:flex-row gap-2">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search attractions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Category Filter */}
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="pl-10 pr-8 py-2.5 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none text-sm appearance-none cursor-pointer min-w-[140px] text-gray-900"
-          >
-            <option value="all">All Categories</option>
-            {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-              <option key={key} value={key}>
-                {config.emoji} {config.label}
-              </option>
-            ))}
-          </select>
+    <div className={`relative flex flex-col h-full ${className}`}>
+      {/* Trip context bar */}
+      <div className="px-3 py-2 bg-[var(--color-bg-sunken)] border-b border-[var(--color-border)] flex items-center justify-between gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 text-sm">
+          <MapPin className="w-4 h-4 text-[var(--color-brand-primary)]" />
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {destination || tripDetails?.destination || 'Your Trip'}
+          </span>
+          <span className="text-[var(--color-text-muted)]">
+            · {tripItems.length} place{tripItems.length !== 1 ? 's' : ''} pinned
+          </span>
         </div>
       </div>
 
-      {/* Route Controls */}
-      {routeAttractions.length > 1 && (
-        <div className="absolute top-20 left-4 z-[1000] flex gap-2">
-          <button
-            onClick={toggleRoute}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-md text-sm font-medium transition-colors ${
-              showRoute
-                ? 'bg-secondary-500 text-white'
-                : 'bg-white/95 text-gray-700 hover:bg-gray-50 border border-gray-200'
-            }`}
-          >
-            <Route className="w-4 h-4" />
-            {showRoute ? 'Hide Route' : 'Show Route'} ({routeAttractions.length}
-            )
-          </button>
-          <button
-            onClick={clearRoute}
-            className="px-3 py-2 bg-white/95 text-red-500 rounded-lg shadow-md text-sm font-medium hover:bg-red-50 border border-gray-200 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      )}
-
-      {/* Results Count */}
-      <div className="absolute bottom-4 left-4 z-[1000] px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-md text-sm text-gray-600">
-        {filteredAttractions.length} attraction
-        {filteredAttractions.length !== 1 ? 's' : ''} found
-      </div>
-
-      {/* Map Container */}
-      <div style={{ height: '500px', width: '100%' }}>
+      {/* Map */}
+      <div className="relative flex-1 min-h-[350px]">
         <MapContainer
           center={SRI_LANKA_CENTER}
           zoom={DEFAULT_ZOOM}
+          className="absolute inset-0"
           style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom={true}
           zoomControl={false}
+          attributionControl={true}
         >
-          <TileLayer url={tileLayer} attribution={tileAttribution} />
-
-          <MapController center={mapCenter} />
-
-          {/* Custom Zoom Controls */}
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
           <ZoomControls />
+          <MapFitter positions={allPositions} />
 
-          {/* Locate Button */}
-          <LocateButton onLocate={handleLocate} isLocating={isLocating} />
+          {/* Day route polylines */}
+          {dayPolylines.map((line) => (
+            <Polyline
+              key={`route-${line.day}`}
+              positions={line.positions}
+              pathOptions={{
+                color: line.color,
+                weight: 3,
+                opacity: 0.6,
+                dashArray: '8, 6',
+              }}
+            />
+          ))}
 
-          {/* User Location Marker */}
-          {currentUserLocation && (
-            <>
-              <Circle
-                center={[currentUserLocation.lat, currentUserLocation.lng]}
-                radius={100}
-                pathOptions={{
-                  color: 'secondary-500',
-                  fillColor: 'secondary-500',
-                  fillOpacity: 0.2,
-                }}
-              />
+          {/* Item markers */}
+          {tripItems.map((item) => {
+            const coords = item.coordinates || item.location?.coordinates;
+            const dayNum = item.showOnAllDays ? 1 : (item.assignedDay || 1);
+            const isAccom = (item.category === 'accommodation' || item.showOnAllDays);
+            const icon = createDayIcon(dayNum, isAccom);
+            const cost = item.cost || item.entryFee || 0;
+
+            return (
               <Marker
-                position={[currentUserLocation.lat, currentUserLocation.lng]}
-                icon={L.divIcon({
-                  className: 'user-location-marker',
-                  html: `
-                  <div style="
-                    width: 20px;
-                    height: 20px;
-                    background-color: secondary-500;
-                    border: 3px solid white;
-                    border-radius: 50%;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                  "></div>
-                `,
-                  iconSize: [20, 20],
-                  iconAnchor: [10, 10],
-                })}
+                key={item.id}
+                position={[coords.lat, coords.lng]}
+                icon={icon}
               >
-                <Popup>
-                  <div className="text-center p-1">
-                    <p className="font-medium text-gray-800">Your Location</p>
+                <Popup className="trip-map-popup" maxWidth={240}>
+                  <div style={{ fontFamily: 'inherit' }}>
+                    <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: 'var(--color-text-primary, #1a1a1a)' }}>
+                      {item.name}
+                    </div>
+                    {item.location && typeof item.location === 'string' && (
+                      <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>📍</span> {item.location}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888' }}>
+                      <span style={{ 
+                        background: DAY_COLORS[(dayNum - 1) % DAY_COLORS.length] + '20',
+                        color: DAY_COLORS[(dayNum - 1) % DAY_COLORS.length],
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                      }}>
+                        {item.showOnAllDays ? 'All Days' : `Day ${dayNum}`}
+                      </span>
+                      {cost > 0 && (
+                        <span style={{ color: '#16a34a', fontWeight: 500 }}>
+                          LKR {cost.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Popup>
               </Marker>
-            </>
-          )}
-
-          {/* Route Polyline - only show visible route attractions */}
-          {showRoute && visibleRouteAttractions.length > 1 && (
-            <Polyline
-              positions={visibleRouteAttractions.map((a) => [
-                a.coordinates.lat,
-                a.coordinates.lng,
-              ])}
-              pathOptions={{
-                color: 'secondary-500',
-                weight: 4,
-                opacity: 0.8,
-                dashArray: '10, 10',
-              }}
-            />
-          )}
-
-          {/* Attraction Markers */}
-          {attractionsWithDistance.map((attraction) => (
-            <Marker
-              key={attraction.id}
-              position={[
-                attraction.coordinates.lat,
-                attraction.coordinates.lng,
-              ]}
-              icon={createCustomIcon(
-                attraction.category,
-                selectedAttraction?.id === attraction.id
-              )}
-              eventHandlers={{
-                click: () => handleMarkerClick(attraction),
-              }}
-            >
-              <Popup maxWidth={300} className="attraction-popup">
-                <div className="p-1 min-w-[250px]">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <h3 className="font-bold text-gray-800 text-base">
-                        {attraction.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span
-                          className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                          style={{
-                            backgroundColor:
-                              CATEGORY_CONFIG[attraction.category]?.color ||
-                              '#6B7280',
-                          }}
-                        >
-                          {CATEGORY_CONFIG[attraction.category]?.emoji}{' '}
-                          {CATEGORY_CONFIG[attraction.category]?.label ||
-                            attraction.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="mb-2">
-                    <StarRating rating={attraction.rating} />
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {attraction.description}
-                  </p>
-
-                  {/* Details */}
-                  <div className="space-y-1.5 text-sm text-gray-600 mb-3">
-                    {attraction.estimatedCost > 0 && (
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-green-500" />
-                        <span>
-                          LKR {attraction.estimatedCost.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                    {attraction.estimatedCost === 0 && (
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="text-green-600 font-medium">
-                          Free Entry
-                        </span>
-                      </div>
-                    )}
-                    {attraction.openingHours && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-blue-500" />
-                        <span>{attraction.openingHours}</span>
-                      </div>
-                    )}
-                    {attraction.distance !== undefined &&
-                      attraction.distance > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Navigation className="w-4 h-4 text-secondary-500" />
-                          <span>{attraction.distance.toFixed(1)} km away</span>
-                        </div>
-                      )}
-                  </div>
-
-                  {/* Add to Itinerary Button */}
-                  <button
-                    onClick={() => handleAddToItinerary(attraction)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-[#1a6f7a] transition-colors text-sm font-medium"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add to Itinerary
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+            );
+          })}
         </MapContainer>
       </div>
 
-      {/* Custom CSS for markers */}
+      {/* Day legend */}
+      {activeDays.length > 0 && (
+        <div className="px-3 py-2 bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)] flex items-center gap-3 overflow-x-auto flex-shrink-0">
+          <CalendarDays className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
+          {activeDays.map((day) => {
+            const color = DAY_COLORS[(day - 1) % DAY_COLORS.length];
+            const itemCount = (itemsByDay[day] || []).length;
+            return (
+              <div
+                key={day}
+                className="flex items-center gap-1.5 text-xs whitespace-nowrap"
+                title={getDayLabel(day)}
+              >
+                <span
+                  className="w-3 h-3 rounded-full flex-shrink-0 border-2 border-white shadow-sm"
+                  style={{ background: color }}
+                />
+                <span className="text-[var(--color-text-secondary)] font-medium">
+                  Day {day}
+                </span>
+                <span className="text-[var(--color-text-muted)]">
+                  ({itemCount})
+                </span>
+              </div>
+            );
+          })}
+          {/* Show accommodation indicator if any */}
+          {tripItems.some(i => i.showOnAllDays) && (
+            <div className="flex items-center gap-1.5 text-xs whitespace-nowrap border-l border-[var(--color-border)] pl-3">
+              <span className="text-sm">🏨</span>
+              <span className="text-[var(--color-text-secondary)] font-medium">Stay</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Popup overrides */}
       <style>{`
-        .custom-marker {
-          background: transparent !important;
-          border: none !important;
-        }
-        .user-location-marker {
-          background: transparent !important;
-          border: none !important;
-        }
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
-        .leaflet-popup-content-wrapper {
+        .trip-map-popup .leaflet-popup-content-wrapper {
           border-radius: 12px;
-          padding: 0;
-        }
-        .leaflet-popup-content {
-          margin: 8px;
-        }
-        .attraction-popup .leaflet-popup-content-wrapper {
+          padding: 4px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .trip-map-popup .leaflet-popup-content {
+          margin: 8px 12px;
+          font-size: 13px;
+          line-height: 1.4;
+        }
+        .trip-map-popup .leaflet-popup-tip {
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .trip-marker {
+          background: transparent !important;
+          border: none !important;
         }
       `}</style>
     </div>

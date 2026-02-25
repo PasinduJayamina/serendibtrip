@@ -90,15 +90,15 @@ const ResetPasswordPage = () => {
   // Success state
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-primary)' }}>
+        <div className="card max-w-md w-full p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {t('resetPassword.successTitle')}
           </h1>
-          <p className="text-gray-500 mb-6">
+          <p className="text-[var(--color-text-muted)] mb-6">
             {t('resetPassword.successMessage')}
           </p>
           <Link
@@ -115,15 +115,15 @@ const ResetPasswordPage = () => {
   // Error state (invalid/expired token)
   if (status === 'error' && !errorMessage.includes('network')) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-primary)' }}>
+        <div className="card max-w-md w-full p-8 text-center">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <XCircle className="w-10 h-10 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
             {t('resetPassword.errorTitle')}
           </h1>
-          <p className="text-gray-500 mb-6">
+          <p className="text-[var(--color-text-muted)] mb-6">
             {errorMessage || t('resetPassword.tokenExpired')}
           </p>
           <Link
@@ -132,7 +132,7 @@ const ResetPasswordPage = () => {
           >
             {t('resetPassword.goToLogin')}
           </Link>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-[var(--color-text-muted)]">
             {t('resetPassword.tryAgain')}
           </p>
         </div>
@@ -142,17 +142,17 @@ const ResetPasswordPage = () => {
 
   // Form state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-500/10 via-white to-secondary-500/5 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-primary)' }}>
+      <div className="card max-w-md w-full p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-secondary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-secondary-500" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
             {t('resetPassword.title')}
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-[var(--color-text-muted)] mt-2">
             {t('resetPassword.subtitle')}
           </p>
         </div>
@@ -169,7 +169,7 @@ const ResetPasswordPage = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
               {t('resetPassword.newPassword')}
             </label>
             <div className="relative">
@@ -179,8 +179,8 @@ const ResetPasswordPage = () => {
                 {...register('password', {
                   required: t('resetPassword.passwordRequired'),
                 })}
-                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
-                  errors.password ? 'border-red-300' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
+                  errors.password ? 'border-red-300' : 'border-[var(--color-border)]'
                 }`}
                 placeholder={t('resetPassword.passwordPlaceholder')}
               />
@@ -196,8 +196,8 @@ const ResetPasswordPage = () => {
 
           {/* Password Requirements */}
           {password && (
-            <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs font-medium text-gray-600 mb-2">
+            <div className="space-y-2 p-3 bg-[var(--color-bg-sunken)] rounded-lg">
+              <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">
                 {t('resetPassword.requirements')}
               </p>
               <div className="grid grid-cols-1 gap-1.5">
@@ -231,8 +231,8 @@ const ResetPasswordPage = () => {
                   validate: (value) =>
                     value === password || t('resetPassword.passwordMismatch'),
                 })}
-                className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
-                  errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-secondary-500 focus:border-transparent outline-none transition-all ${
+                  errors.confirmPassword ? 'border-red-300' : 'border-[var(--color-border)]'
                 }`}
                 placeholder={t('resetPassword.confirmPlaceholder')}
               />
