@@ -136,9 +136,9 @@ function createOptimizedItineraryPrompt(tripDetails) {
 
   const dailyBudget = Math.round(budget / duration);
   
-  // Scale itinerary items with trip duration
-  const attractionsCount = Math.min(5 + (duration - 1) * 3, 20); // 5 for 1 day, +3 per extra day, max 20
-  const restaurantsCount = Math.min(4 + (duration - 1) * 2, 15); // 4 for 1 day, +2 per extra day, max 15
+  // Scale itinerary items with trip duration — at least 5-6 per day
+  const attractionsCount = Math.min(duration * 6, 30); // 6 attractions per day, max 30
+  const restaurantsCount = Math.min(duration * 3, 15); // 3 restaurants per day, max 15
   
   // Accommodation cost lookup (per night) - 2026 REALISTIC PRICES from travel sites
   const accommodationCosts = {
@@ -842,9 +842,9 @@ CRITICAL REQUIREMENTS:
 1. Include ONLY real, VERIFIED places that exist in ${destination}
 2. Provide accurate GPS coordinates for each location
 3. 🎯 MATCH INTERESTS: At least 70% of attractions MUST match the user's selected interests: [${interests.join(', ') || 'general'}]. This is NOT optional!
-4. Include ${attractionsCount} TOP attractions (${Math.ceil(attractionsCount / duration)} per day - mix of popular + hidden gems matching interests)
+4. Include ${attractionsCount} TOP attractions (at least ${Math.ceil(attractionsCount / duration)} per day - mix of popular + hidden gems matching interests). NEVER include fewer than 5 per day!
 5. Include ${restaurantsCount} BEST local restaurants (${Math.ceil(restaurantsCount / duration)} per day - authentic cuisine)
-6. DISTRIBUTE items EVENLY across all ${duration} days using "recommendedDay". Each day should have roughly the same number of attractions and restaurants. Do NOT put all items on Day 1!
+6. DISTRIBUTE items EVENLY across all ${duration} days using "recommendedDay". Each day MUST have at least 5 attractions and 2 restaurants. Group nearby places on the same day for walkability. Do NOT put all items on Day 1!
 7. Include 3 accommodations STRICTLY in the "${accommodationType}" price range (LKR ${effectiveAccomMin.toLocaleString()}-${effectiveAccomMax.toLocaleString()}/night). NEVER suggest a luxury hotel when user selected budget/midrange!
 8. Set "type": "${accommodationType}" for ALL accommodations - they must ALL match the user's selected type
 9. Use EXACT hotel names from the verified lists - do not make up names

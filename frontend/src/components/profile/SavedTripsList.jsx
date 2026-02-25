@@ -17,22 +17,22 @@ const STATUS_CONFIG = {
   planned: {
     label: 'Planned',
     icon: Calendar,
-    color: 'text-blue-600 bg-blue-50',
+    color: 'text-blue-500 bg-blue-500/10 border border-blue-500/20',
   },
   ongoing: {
     label: 'Ongoing',
     icon: Plane,
-    color: 'text-green-600 bg-green-50',
+    color: 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20',
   },
   completed: {
     label: 'Completed',
     icon: CheckCircle,
-    color: 'text-gray-600 bg-gray-100',
+    color: 'text-[var(--color-text-muted)] bg-[var(--color-bg-sunken)] border border-[var(--color-border)]',
   },
   cancelled: {
     label: 'Cancelled',
     icon: XCircle,
-    color: 'text-red-600 bg-red-50',
+    color: 'text-red-500 bg-red-500/10 border border-red-500/20',
   },
 };
 
@@ -49,7 +49,7 @@ const SavedTripsList = ({
     return (
       <div className="space-y-4">
         {[1, 2].map((i) => (
-          <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-32" />
+          <div key={i} className="animate-pulse bg-[var(--color-bg-sunken)] rounded-lg h-32" />
         ))}
       </div>
     );
@@ -58,13 +58,13 @@ const SavedTripsList = ({
   if (!trips || trips.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 bg-[var(--color-bg-sunken)] rounded-full flex items-center justify-center mx-auto mb-4">
+          <Calendar className="w-8 h-8 text-[var(--color-text-muted)]" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <h3 className="text-lg font-medium text-[var(--color-text-primary)] mb-2">
           No saved trips
         </h3>
-        <p className="text-gray-500">Plan your first trip and save it here!</p>
+        <p className="text-[var(--color-text-secondary)]">Plan your first trip and save it here!</p>
       </div>
     );
   }
@@ -78,26 +78,26 @@ const SavedTripsList = ({
   if (tripsWithItems.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 bg-[var(--color-bg-sunken)] rounded-full flex items-center justify-center mx-auto mb-4">
+          <Calendar className="w-8 h-8 text-[var(--color-text-muted)]" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <h3 className="text-lg font-medium text-[var(--color-text-primary)] mb-2">
           No saved trips
         </h3>
-        <p className="text-gray-500">Add items to your itinerary to see trips here!</p>
+        <p className="text-[var(--color-text-secondary)]">Add items to your itinerary to see trips here!</p>
       </div>
     );
   }
 
-  // Sort trips by date (most recent first)
+  // Sort trips by date (soonest first)
   const sortedTrips = [...tripsWithItems].sort(
-    (a, b) => new Date(b.startDate) - new Date(a.startDate)
+    (a, b) => new Date(a.startDate) - new Date(b.startDate)
   );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-500">
+        <h3 className="text-sm font-medium text-[var(--color-text-muted)]">
           {tripsWithItems.length} saved trip{tripsWithItems.length !== 1 ? 's' : ''}
         </h3>
       </div>
@@ -116,16 +116,16 @@ const SavedTripsList = ({
           return (
             <div
               key={trip.tripId}
-              className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+              className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg hover:shadow-md transition-shadow"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-secondary-500" />
+                  <h4 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[var(--color-brand-primary)]" />
                     {trip.destination}
                   </h4>
-                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                  <p className="text-sm text-[var(--color-text-secondary)] flex items-center gap-1 mt-1">
                     <Calendar className="w-3 h-3" />
                     {format(startDate, 'MMM d')} -{' '}
                     {format(endDate, 'MMM d, yyyy')}
@@ -140,7 +140,7 @@ const SavedTripsList = ({
               </div>
 
               {/* Trip Details */}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+              <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-secondary)] mb-4">
                 <span className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {duration} day{duration !== 1 ? 's' : ''}
@@ -160,11 +160,11 @@ const SavedTripsList = ({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 pt-3 border-t border-[var(--color-border)]">
                 {onView && (
                   <button
                     onClick={() => onView(trip)}
-                    className="flex-1 px-3 py-2 text-sm text-secondary-500 hover:bg-secondary-500/5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm text-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary)]/5 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
                     View
@@ -174,7 +174,7 @@ const SavedTripsList = ({
                 {trip.status === 'planned' && onUpdateStatus && (
                   <button
                     onClick={() => onUpdateStatus(trip.tripId, 'ongoing')}
-                    className="flex-1 px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     <Plane className="w-4 h-4" />
                     Start Trip
@@ -184,7 +184,7 @@ const SavedTripsList = ({
                 {trip.status === 'ongoing' && onUpdateStatus && (
                   <button
                     onClick={() => onUpdateStatus(trip.tripId, 'completed')}
-                    className="flex-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
                     <CheckCircle className="w-4 h-4" />
                     Complete
@@ -194,7 +194,7 @@ const SavedTripsList = ({
                 {onDelete && (
                   confirmingDeleteId === trip.tripId ? (
                     // Show confirmation buttons
-                    <div className="flex items-center gap-1 bg-red-50 rounded-lg p-1">
+                    <div className="flex items-center gap-1 bg-red-500/10 rounded-lg p-1">
                       <button
                         onClick={() => {
                           onDelete(trip.tripId);
@@ -206,7 +206,7 @@ const SavedTripsList = ({
                       </button>
                       <button
                         onClick={() => setConfirmingDeleteId(null)}
-                        className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 rounded font-medium"
+                        className="px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded font-medium"
                       >
                         Cancel
                       </button>
@@ -215,7 +215,7 @@ const SavedTripsList = ({
                     // Show trash icon
                     <button
                       onClick={() => setConfirmingDeleteId(trip.tripId)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                       title="Delete trip"
                     >
                       <Trash2 className="w-4 h-4" />

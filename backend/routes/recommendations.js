@@ -194,7 +194,7 @@ router.post('/packing-list', async (req, res) => {
  */
 router.post('/chat', async (req, res) => {
   try {
-    const { message, conversationHistory, userContext } = req.body;
+    const { message, conversationHistory, userContext, tripContext } = req.body;
 
     if (!message) {
       return res.status(400).json({
@@ -207,6 +207,7 @@ router.post('/chat', async (req, res) => {
       message,
       conversationHistory: conversationHistory || [],
       userContext: userContext || null,
+      tripContext: tripContext || null,
     });
 
     if (!result.success) {

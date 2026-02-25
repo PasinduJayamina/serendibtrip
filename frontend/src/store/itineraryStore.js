@@ -5,6 +5,7 @@ import {
   categorizeExpense,
 } from '../services/budgetService';
 import { updateTripSavedItems } from '../services/userApi';
+import { geocodePlaceRateLimited } from '../services/geocodingService';
 
 /**
  * Zustand store for managing user's custom itinerary
@@ -152,6 +153,10 @@ export const useItineraryStore = create(
 
           // Auto-assign to next available day if not specified
           let assignedDay = dayNumber;
+          // Use AI's recommendedDay first (from the AI response's geographic clustering)
+          if (!assignedDay && item.recommendedDay && item.recommendedDay >= 1 && item.recommendedDay <= (state.tripDetails.duration || 999)) {
+            assignedDay = item.recommendedDay;
+          }
           if (!assignedDay && state.tripDetails.duration > 0) {
             const duration = state.tripDetails.duration;
             const currentTripItems = state.savedItems.filter(
@@ -273,6 +278,24 @@ export const useItineraryStore = create(
       // Add item to saved and sync to backend (use this for persistence)
       addToSavedAndSync: async (item, dayNumber = null) => {
         get().addToSaved(item, dayNumber);
+
+        // Geocode the item's location for accurate map pins (async, non-blocking)
+        const destination = get().tripDetails?.destination;
+        if (destination && item.name) {
+          geocodePlaceRateLimited(item.name, destination).then((coords) => {
+            if (coords) {
+              // Update the item's coordinates in the store
+              set((state) => ({
+                savedItems: state.savedItems.map((si) =>
+                  si.name === item.name && si.tripId === state.tripDetails?.tripId
+                    ? { ...si, coordinates: coords }
+                    : si
+                ),
+              }));
+            }
+          }).catch(() => { /* geocode failed, keep AI coords */ });
+        }
+
         // Debounce/delay sync slightly to allow for multiple rapid adds
         setTimeout(() => {
           get().syncSavedItemsToBackend();
@@ -461,31 +484,23 @@ export const useItineraryStore = create(
       syncSavedItemsToBackend: async () => {
         const { savedItems, tripDetails } = get();
         
-        console.log('🔄 Sync triggered with', savedItems.length, 'items');
-        
         // Skip if no items to sync
         if (!savedItems || savedItems.length === 0) {
-          console.log('No items to sync');
           return;
         }
         
         // Check if user is authenticated
         const userStorage = localStorage.getItem('user-storage');
         const token = localStorage.getItem('token');
-        console.log('🔐 Auth check - userStorage exists:', !!userStorage, '| token exists:', !!token);
         
         const isAuthenticated = userStorage && JSON.parse(userStorage)?.state?.isAuthenticated;
         if (!isAuthenticated) {
-          console.log('❌ Not authenticated (isAuthenticated:', isAuthenticated, '), skipping sync');
           return;
         }
         
         if (!token) {
-          console.log('❌ No token found, skipping sync');
           return;
         }
-        
-        console.log('✅ Auth check passed - proceeding with sync');
         
         // Generate tripId from tripDetails if not available on items
         const fallbackTripId = tripDetails.tripId || 
@@ -502,8 +517,6 @@ export const useItineraryStore = create(
           }
           itemsByTrip[tripId].push(item);
         });
-        
-        console.log('Syncing items by trip:', Object.keys(itemsByTrip).map(k => `${k}: ${itemsByTrip[k].length} items`));
         
         // Sync each trip's items to backend
         const syncPromises = Object.entries(itemsByTrip).map(async ([tripId, items]) => {
@@ -522,14 +535,10 @@ export const useItineraryStore = create(
                 accommodationType: perTripMeta.accommodationType || tripDetails.accommodationType || 'midrange',
                 transportMode: perTripMeta.transportMode || tripDetails.transportMode || 'tuktuk',
               };
-              console.log(`📤 Syncing trip ${tripId} with meta:`, tripMeta);
               await updateTripSavedItems(tripId, items, tripMeta);
-              console.log(`✅ Synced ${items.length} items for trip ${tripId}`);
             } catch (error) {
-              console.error(`❌ Failed to sync items for trip ${tripId}:`, error.message);
+              console.error(`Failed to sync items for trip ${tripId}:`, error.message);
             }
-          } else {
-            console.warn(`⚠️ Cannot sync ${items.length} items - no valid tripId`);
           }
         });
         

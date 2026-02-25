@@ -74,11 +74,11 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
         <div className="relative group">
           <div
             onClick={handleImageClick}
-            className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 cursor-pointer border-4 border-white shadow-lg"
+            className="w-32 h-32 rounded-full overflow-hidden bg-[var(--color-bg-sunken)] cursor-pointer border-4 border-[var(--color-border)] shadow-sm"
           >
             {uploadingImage ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+              <div className="w-full h-full flex items-center justify-center bg-[var(--color-bg-secondary)]">
+                <Loader2 className="w-8 h-8 animate-spin text-[var(--color-brand-primary)]" />
               </div>
             ) : imagePreview ? (
               <img
@@ -87,7 +87,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-500 to-secondary-600 text-white text-4xl font-bold">
+              <div className="w-full h-full flex items-center justify-center bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] text-4xl font-bold">
                 {formData.fullName?.charAt(0)?.toUpperCase() || 'U'}
               </div>
             )}
@@ -95,7 +95,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           <button
             type="button"
             onClick={handleImageClick}
-            className="absolute bottom-0 right-0 p-2 bg-secondary-500 text-white rounded-full shadow-lg hover:bg-secondary-600 transition-colors"
+            className="absolute bottom-0 right-0 p-2 bg-[var(--color-brand-primary)] text-white rounded-full shadow-lg hover:opacity-90 transition-opacity"
           >
             <Camera className="w-4 h-4" />
           </button>
@@ -120,7 +120,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           name="fullName"
           value={formData.fullName}
           onChange={handleChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)] focus:border-transparent transition-all outline-none"
           placeholder={t('profile.form.fullName')}
           required
         />
@@ -135,7 +135,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           type="email"
           value={user?.email || ''}
           disabled
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+          className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-sunken)] text-[var(--color-text-muted)] cursor-not-allowed outline-none"
         />
         <p className="text-xs text-gray-400 mt-1">{t('profile.form.emailCannotBeChanged')}</p>
       </div>
@@ -150,7 +150,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           name="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)] focus:border-transparent transition-all outline-none"
           placeholder={t('profile.form.phonePlaceholder')}
         />
       </div>
@@ -166,7 +166,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
           onChange={handleChange}
           rows={4}
           maxLength={500}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all resize-none"
+          className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-brand-primary)] focus:border-transparent transition-all resize-none outline-none"
           placeholder={t('profile.form.bioPlaceholder')}
         />
         <p className="text-xs text-gray-400 text-right">
@@ -179,7 +179,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
         <button
           type="button"
           onClick={handleReset}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-2 border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-lg hover:bg-[var(--color-bg-sunken)] transition-colors flex items-center justify-center gap-2"
         >
           <X className="w-4 h-4" />
           {t('profile.form.reset')}
@@ -187,7 +187,7 @@ const ProfileForm = ({ user, onSave, isLoading }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-4 py-2 bg-[var(--color-brand-primary)] text-white rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />

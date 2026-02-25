@@ -431,7 +431,7 @@ Respond with ONLY valid JSON (no markdown):
  */
 async function generateChatResponse(params) {
   try {
-    const { message, conversationHistory = [], userContext } = params;
+    const { message, conversationHistory = [], userContext, tripContext } = params;
 
     if (!message) {
       throw new Error('Message is required');
@@ -444,11 +444,27 @@ async function generateChatResponse(params) {
       .join('\n');
 
     // User context for personalization
+    const prefs = userContext?.preferences || {};
     const userInfo = userContext ? `
 User Information:
 - Name: ${userContext.name || 'Guest'}
-- Interests: ${userContext.preferences?.interests?.join(', ') || 'Not specified'}
-- Budget preference: ${userContext.preferences?.budget || 'Not specified'}
+- Travel Style: ${prefs.travelStyle || 'Not specified'}
+- Interests: ${prefs.interests?.join(', ') || prefs.preferredActivities?.join(', ') || 'Not specified'}
+- Preferred Destinations: ${prefs.preferredDestinations?.join(', ') || 'Not specified'}
+- Budget Preference: ${prefs.budget || 'Not specified'}
+- Dietary Restrictions: ${prefs.dietaryRestrictions?.join(', ') || 'None'}
+- Preferred Currency: ${prefs.currency || 'LKR'}
+- Language: ${prefs.language || 'English'}
+` : '';
+
+    // Trip context for personalized recommendations
+    const tripInfo = tripContext ? `
+Current Trip Context:
+- Destination: ${tripContext.destination}
+- Duration: ${tripContext.duration} days
+- Dates: ${tripContext.startDate || 'Unknown'} to ${tripContext.endDate || 'Unknown'}
+- Group Size: ${tripContext.groupSize || 1} person(s)
+- Total Budget: LKR ${tripContext.budget?.toLocaleString() || 'Not specified'}
 ` : '';
 
     const systemPrompt = `You are SerendibAI, a friendly and knowledgeable Sri Lanka travel assistant. Your personality:
@@ -459,17 +475,25 @@ User Information:
 - Use emojis sparingly but effectively (🌴 🏛️ 🍛 etc.)
 - Suggest follow-up actions when relevant
 
+IMPORTANT — Personalize every response using the user's profile:
+- If they have a travel style (luxury, budget, adventure, etc.), tailor accommodation and activity suggestions accordingly
+- If they have dietary restrictions, always consider them for food recommendations
+- If they have preferred destinations, reference them when relevant
+- Use their preferred currency for any price estimates
+- Match response language to their language preference when possible
+
 ${userInfo}
+${tripInfo}
 
 ${historyContext ? `Recent conversation:\n${historyContext}\n` : ''}
 
 Current user message: ${message}
 
 Respond naturally and helpfully. If the user asks about:
-- Places: Suggest specific attractions with brief descriptions
-- Food: Recommend local dishes and where to find them
+- Places: Suggest specific attractions with brief descriptions, tailored to their interests & travel style
+- Food: Recommend local dishes and where to find them, respecting dietary restrictions
 - Weather: Give seasonal advice and what to pack
-- Planning: Help structure their trip with practical tips
+- Planning: Help structure their trip with practical tips, factoring in their budget & style
 - Anything else: Be helpful and connect it to Sri Lanka travel when possible
 
 Format your response as conversational text. At the end, if relevant, suggest 2-3 follow-up questions the user might want to ask.`;
@@ -541,7 +565,7 @@ Current weather: ${weather.temperature}°C, ${weather.condition}
 Forecast: ${weather.forecast?.map(f => `${f.day}: ${f.temp}°C, ${f.condition}`).join('; ') || 'Not available'}
 ` : 'Weather data not available';
 
-    const prompt = `You are a travel packing expert for Sri Lanka trips. Generate a comprehensive packing list for:
+    const prompt = `You are a travel packing expert for Sri Lanka trips. Generate a CONCISE packing list of ONLY essential must-have items for:
 
 Destination: ${destination}, Sri Lanka
 Duration: ${duration} days
@@ -549,48 +573,45 @@ Activities: ${activities.join(', ') || 'General sightseeing'}
 Group size: ${groupSize} person(s)
 ${weatherContext}
 
-Consider:
-- Sri Lankan climate (tropical, humid)
-- Local customs (modest dress for temples)
-- The specific activities planned
-- Current/forecasted weather
+IMPORTANT RULES:
+- Include ONLY essentials — items the traveler absolutely cannot do without
+- NO luxury, nice-to-have, or optional items
+- Maximum 20 items total across all categories
+- Keep quantities realistic for ${duration} days
+- Sri Lankan climate is tropical and humid
+- Include modest clothing for temple visits if relevant
 
 Respond with ONLY valid JSON (no markdown):
 {
-  "weatherTip": "Brief weather-based packing advice (1-2 sentences)",
+  "weatherTip": "Brief weather-based packing advice (1 sentence)",
   "categories": [
     {
       "name": "Clothing",
       "items": [
-        { "name": "Light cotton t-shirts", "quantity": 4 },
+        { "name": "Light cotton t-shirts", "quantity": 3 },
         { "name": "Item name", "quantity": 1 }
       ]
     },
     {
-      "name": "Toiletries",
-      "items": [...]
-    },
-    {
-      "name": "Electronics",
-      "items": [...]
-    },
-    {
-      "name": "Documents",
-      "items": [...]
-    },
-    {
       "name": "Essentials",
+      "items": [...]
+    },
+    {
+      "name": "Documents & Money",
+      "items": [...]
+    },
+    {
+      "name": "Health & Safety",
       "items": [...]
     }
   ],
   "tips": [
     "Pro tip 1",
-    "Pro tip 2",
-    "Pro tip 3"
+    "Pro tip 2"
   ]
 }
 
-Include 5-8 items per category. Make quantities appropriate for ${duration} days.`;
+Include only 4-5 items per category. Keep it practical and minimal.`;
 
     const result = await retryWithBackoff(async (model) => {
       return await model.generateContent(prompt);

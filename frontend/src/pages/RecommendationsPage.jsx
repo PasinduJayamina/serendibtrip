@@ -16,61 +16,15 @@ import {
   CloudIcon,
   MapIcon,
   LockClosedIcon,
+  ArchiveBoxIcon as PackageIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { useItineraryStore } from '../store/itineraryStore';
 import { useRecommendationsStore } from '../store/recommendationsStore';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
-import { sampleAttractions } from '../data/attractions';
 
-// Helper: map AI recommendations to AttractionMap format, filling coordinates from sampleAttractions if missing
-function getMapAttractions(
-  aiRecommendations,
-  destinationAttractions,
-  sampleAttractions,
-  coords,
-  destination
-) {
-  if (
-    !aiRecommendations ||
-    (!aiRecommendations.topAttractions &&
-      !aiRecommendations.recommendedRestaurants)
-  ) {
-    // fallback to sample attractions for destination
-    return destinationAttractions.length > 0
-      ? destinationAttractions
-      : sampleAttractions.slice(0, 5);
-  }
-  // Combine topAttractions and recommendedRestaurants
-  const aiRecs = [
-    ...(aiRecommendations.topAttractions || []),
-    ...(aiRecommendations.recommendedRestaurants || []),
-  ];
-  // Map to AttractionMap format
-  return aiRecs.map((rec, idx) => {
-    // Try to get coordinates from rec, else from sampleAttractions by name
-    let coordinates = rec.coordinates;
-    if (!coordinates && rec.name) {
-      const match = sampleAttractions.find(
-        (a) => a.name.toLowerCase() === rec.name.toLowerCase()
-      );
-      coordinates = match ? match.coordinates : undefined;
-    }
-    return {
-      id: rec.id || rec.name || idx,
-      name: rec.name,
-      description: rec.description,
-      category:
-        rec.category || (rec.type === 'restaurant' ? 'food' : 'culture'),
-      rating: rec.rating || 4.5,
-      coordinates: coordinates || { lat: coords.lat, lng: coords.lng },
-      estimatedCost: rec.estimatedCost || 0,
-      openingHours: rec.openingHours || '',
-      imageUrl: rec.imageUrl || '',
-      type: rec.type || 'attraction',
-      location: rec.location || destination,
-    };
-  });
-}
+
 
 // Sri Lanka destinations with coordinates
 const DESTINATIONS = {
@@ -126,10 +80,8 @@ const RecommendationsPage = () => {
   const location = useLocation();
 
   // Feature access control
-  const { isGuest, isAuthenticated, canUseFeature, getRemainingUsage, getMaxUsage, recordUsage } = useFeatureAccess();
-  const aiRecsAccess = canUseFeature('aiRecommendations');
+  const { isGuest, getRemainingUsage } = useFeatureAccess();
   const remainingRecs = getRemainingUsage('aiRecommendations');
-  const maxRecs = getMaxUsage('aiRecommendations');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Note: Guests can now access recommendations with limits (1 per session)
@@ -141,17 +93,15 @@ const RecommendationsPage = () => {
 
   // For new trips (not Add More), generate a unique suffix to prevent tripId collision
   // when multiple trips share the same destination. This ref is stable across re-renders.
-  const newTripSuffix = useRef(
-    !isAddMoreMode && !tripData?.tripId ? `-${Date.now()}` : ''
-  );
+  const newTripSuffix = useRef(null);
+  if (newTripSuffix.current === null) {
+    newTripSuffix.current = !isAddMoreMode && !tripData?.tripId ? `-${Date.now()}` : '';
+  }
 
   // Get cached params and recommendations from store
   const {
     params: cachedParams,
     isValid,
-    hasStoredRecommendations,
-    getCachedByDestination,
-    hasCachedFor,
     clearRecommendationsForDestination,
     setLoading: setStoreLoading,
     recommendationsByDestination,
@@ -178,7 +128,7 @@ const RecommendationsPage = () => {
           return parsed[tripKey];
         }
       }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     if (cachedParams?.[cachedKey] && isValid()) return cachedParams[cachedKey];
     return defaultValue;
   };
@@ -219,8 +169,9 @@ const RecommendationsPage = () => {
   );
   const [showAddedToast, setShowAddedToast] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState(null);
-  const [showWeather, setShowWeather] = useState(true);
+  const [showWeather, setShowWeather] = useState(false);
   const [showMap, setShowMap] = useState(true); // Show map by default
+  const [prefsExpanded, setPrefsExpanded] = useState(!tripData);
   const [accommodationType, setAccommodationType] = useState(() =>
     getInitialValue('accommodationType', 'accommodationType', 'midrange')
   );
@@ -257,8 +208,9 @@ const RecommendationsPage = () => {
       console.log('New trip detected — clearing recommendation cache for:', tripData.destination);
       clearRecommendationsForDestination(tripData.destination);
       // Also clear session storage to prevent stale form data leaking between trips
-      try { sessionStorage.removeItem('serendibtrip-trip-prefs'); } catch (e) { /* ignore */ }
+      try { sessionStorage.removeItem('serendibtrip-trip-prefs'); } catch { /* ignore */ }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount — runs once when page loads for a new trip
 
   // Save form preferences to sessionStorage whenever they change (survives navigation)
@@ -276,7 +228,7 @@ const RecommendationsPage = () => {
           accommodationType,
           transportMode,
         }));
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore */ }
     }
   }, [destination, interests, budget, duration, groupSize, accommodationType, transportMode]);
 
@@ -285,21 +237,15 @@ const RecommendationsPage = () => {
     if (storeLoading && !_activeFetchId) {
       setStoreLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount
 
   // Zustand store for itinerary
-  const { savedItems, addToSavedAndSync, isSaved, setTripDetails } =
+  const { addToSavedAndSync, isSaved, setTripDetails } =
     useItineraryStore();
 
   // Get coordinates for current destination
   const coords = DESTINATIONS[destination] || DESTINATIONS['Kandy'];
-
-  // Filter attractions for current destination (use name/description since attractions don't have location field)
-  const destinationAttractions = sampleAttractions.filter(
-    (a) =>
-      a.name?.toLowerCase().includes(destination.toLowerCase()) ||
-      a.description?.toLowerCase().includes(destination.toLowerCase())
-  );
 
   // Calculate dates based on duration or use provided dates
   const calculatedStartDate =
@@ -364,6 +310,7 @@ const RecommendationsPage = () => {
     transportMode,
     interests,
     setTripDetails,
+    isAddMoreMode,
   ]);
 
   // Toggle interest selection
@@ -407,7 +354,7 @@ const RecommendationsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Toast notification for added items */}
       {showAddedToast && (
         <div className="fixed top-20 right-4 z-50 animate-slide-in">
@@ -425,48 +372,53 @@ const RecommendationsPage = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-secondary-600 to-accent-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <SparklesIcon className="w-8 h-8" />
-            <span className="text-secondary-200 font-medium">{t('recommendations.aiPowered')}</span>
+      {/* Header - Moved to be part of the layout */}
+      <div className="bg-[var(--color-bg-primary)] border-b border-[var(--color-border)] sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <SparklesIcon className="w-5 h-5 text-[var(--color-brand-primary)]" />
+              <span className="text-sm font-bold text-[var(--color-brand-primary)] uppercase tracking-wider">{t('recommendations.aiPowered')}</span>
+            </div>
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+              {destination 
+                ? `${destination} ✨`
+                : t('recommendations.title')}
+            </h1>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-            {destination 
-              ? `${t('recommendations.title')} - ${destination}`
-              : t('recommendations.title')}
-          </h1>
-          <p className="text-secondary-200">
-            {tripData
-              ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')} • LKR ${budget?.toLocaleString() || 0}`
-              : destination 
-                ? t('home.getAiRecommendations')
-                : 'Select a destination to get started'}
-          </p>
+          <div className="text-right hidden sm:block">
+            <p className="text-[var(--color-text-secondary)] font-medium">
+              {tripData
+                ? `${duration} ${t('tripPlanner.days')} • ${groupSize} ${t('tripPlanner.travelers')}`
+                : t('home.getAiRecommendations')}
+            </p>
+            {budget && (
+              <p className="text-sm text-[var(--color-text-muted)]">LKR {budget.toLocaleString()}</p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Guest Upgrade Banner */}
       {isGuest && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200">
+        <div className="bg-[var(--color-brand-primary)]/5 border-b border-[var(--color-brand-primary)]/20">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <SparklesIcon className="w-5 h-5 text-amber-600" />
+              <div className="p-2 bg-[var(--color-brand-primary)]/10 rounded-lg">
+                <SparklesIcon className="w-5 h-5 text-[var(--color-brand-primary)]" />
               </div>
               <div>
-                <p className="text-amber-800 font-medium text-sm">
+                <p className="text-[var(--color-brand-primary)] font-medium text-sm">
                   {remainingRecs > 0 
                     ? `You have ${remainingRecs} free recommendation${remainingRecs > 1 ? 's' : ''} left`
                     : 'You\'ve used your free recommendation'}
                 </p>
-                <p className="text-amber-600 text-xs">Sign up for unlimited access</p>
+                <p className="text-[var(--color-brand-primary)]/80 text-xs">Sign up for unlimited access</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/register')}
-              className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[var(--color-brand-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-brand-primary-hover)] transition-colors flex items-center gap-2"
             >
               <SparklesIcon className="w-4 h-4" />
               Get Full Access
@@ -537,15 +489,39 @@ const RecommendationsPage = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Preferences Panel */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">
-                {t('recommendations.tripPreferences')}
-              </h2>
+      {/* Main Split-Pane Layout */}
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-140px)]">
+        
+        {/* Left Pane - Content (Scrollable) */}
+        <div className="w-full lg:w-3/5 xl:w-[55%] flex-shrink-0 order-2 lg:order-1 border-r border-[var(--color-border)]">
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="space-y-8">
+              {/* Preferences Summary Card (Collapsible/Compact) */}
+              <div className="card p-5">
+                <div 
+                  className="flex items-center justify-between mb-4 cursor-pointer group"
+                  onClick={() => setPrefsExpanded(!prefsExpanded)}
+                >
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+                      {t('recommendations.tripPreferences')}
+                    </h2>
+                    {!prefsExpanded && (
+                      <p className="text-sm text-[var(--color-text-secondary)] mt-1 font-medium">
+                        {destination || 'Anywhere'} • {duration} {t('tripPlanner.days')} • {groupSize} {t('tripPlanner.travelers')} {budget ? `• LKR ${budget.toLocaleString()}` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <button 
+                    className="p-2 bg-[var(--color-bg-sunken)] group-hover:bg-[var(--color-border)] rounded-lg transition-colors border border-[var(--color-border)]"
+                    aria-label={prefsExpanded ? "Collapse preferences" : "Expand preferences"}
+                  >
+                    {prefsExpanded ? <ChevronUpIcon className="w-4 h-4 text-[var(--color-text-secondary)]" /> : <ChevronDownIcon className="w-4 h-4 text-[var(--color-text-secondary)]" />}
+                  </button>
+                </div>
               
+              {prefsExpanded && (
+                <div className="animate-fade-in">
               {/* Locked mode info banner */}
               {isAddMoreMode && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -556,126 +532,123 @@ const RecommendationsPage = () => {
                 </div>
               )}
 
-              {/* Destination */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <MapPinIcon className="w-4 h-4 text-secondary-500" />
-                  {t('tripPlanner.destination')}
-                  {isAddMoreMode && <span className="ml-auto text-xs text-gray-400">🔒 Locked</span>}
-                </label>
-                <select
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                >
-                  <option value="">{t('tripPlanner.selectDestination') || 'Select a destination'}</option>
-                  {Object.keys(DESTINATIONS).map((dest) => (
-                    <option key={dest} value={dest}>
-                      {dest}
-                    </option>
-                  ))}
-                </select>
+              {/* Destination & Duration Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    <MapPinIcon className="w-4 h-4 text-[var(--color-brand-primary)]" />
+                    {t('tripPlanner.destination')}
+                    {isAddMoreMode && <span className="ml-auto text-xs text-[var(--color-text-muted)]">🔒 Locked</span>}
+                  </label>
+                  <select
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">{t('tripPlanner.selectDestination') || 'Select a destination'}</option>
+                    {Object.keys(DESTINATIONS).map((dest) => (
+                      <option key={dest} value={dest}>{dest}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    <CalendarDaysIcon className="w-4 h-4 text-[var(--color-brand-primary)]" />
+                    {t('tripPlanner.duration')} ({t('tripPlanner.days')})
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={duration}
+                    onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  />
+                </div>
               </div>
 
-              {/* Duration */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <CalendarDaysIcon className="w-4 h-4 text-secondary-500" />
-                  {t('tripPlanner.duration')} ({t('tripPlanner.days')})
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={duration}
-                  onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                />
+              {/* Group Size & Budget Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    <UserGroupIcon className="w-4 h-4 text-[var(--color-brand-primary)]" />
+                    {t('tripPlanner.travelers')}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={groupSize}
+                    onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    <CurrencyDollarIcon className="w-4 h-4 text-[var(--color-brand-primary)]" />
+                    {t('tripPlanner.budgetLKR')}
+                  </label>
+                  <input
+                    type="number"
+                    min="10000"
+                    step="10000"
+                    value={budget}
+                    onChange={(e) => setBudget(parseInt(e.target.value) || 10000)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  />
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1.5 ml-1">
+                    ≈ ${(budget / 300).toFixed(0)} USD
+                  </p>
+                </div>
               </div>
 
-              {/* Group Size */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <UserGroupIcon className="w-4 h-4 text-secondary-500" />
-                  {t('tripPlanner.travelers')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={groupSize}
-                  onChange={(e) => setGroupSize(parseInt(e.target.value) || 1)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                />
-              </div>
+              {/* Acc & Transport Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    🏨 Accommodation Type
+                    {isAddMoreMode && <span className="ml-2 text-xs text-[var(--color-text-muted)]">🔒</span>}
+                  </label>
+                  <select
+                    value={accommodationType}
+                    onChange={(e) => setAccommodationType(e.target.value)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  >
+                    {ACCOMMODATION_TYPES.map((type) => (
+                      <option key={type.id} value={type.id}>{type.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1.5 ml-1">
+                    {ACCOMMODATION_TYPES.find(t => t.id === accommodationType)?.description}
+                  </p>
+                </div>
 
-              {/* Budget */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <CurrencyDollarIcon className="w-4 h-4 text-secondary-500" />
-                  {t('tripPlanner.budgetLKR')}
-                </label>
-                <input
-                  type="number"
-                  min="10000"
-                  step="10000"
-                  value={budget}
-                  onChange={(e) => setBudget(parseInt(e.target.value) || 10000)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  ≈ ${(budget / 300).toFixed(0)} USD
-                </p>
-              </div>
-
-              {/* Accommodation Type */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  🏨 Accommodation Type
-                  {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒</span>}
-                </label>
-                <select
-                  value={accommodationType}
-                  onChange={(e) => setAccommodationType(e.target.value)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                >
-                  {ACCOMMODATION_TYPES.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {ACCOMMODATION_TYPES.find(t => t.id === accommodationType)?.description}
-                </p>
-              </div>
-
-              {/* Transport Mode */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  🚗 Transport Mode
-                  {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒</span>}
-                </label>
-                <select
-                  value={transportMode}
-                  onChange={(e) => setTransportMode(e.target.value)}
-                  disabled={isAddMoreMode}
-                  className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 outline-none ${isAddMoreMode ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''}`}
-                >
-                  {TRANSPORT_MODES.map((mode) => (
-                    <option key={mode.id} value={mode.id}>
-                      {mode.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {TRANSPORT_MODES.find(m => m.id === transportMode)?.description}
-                </p>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)] mb-1.5 ml-1">
+                    🚗 Transport Mode
+                    {isAddMoreMode && <span className="ml-2 text-xs text-[var(--color-text-muted)]">🔒</span>}
+                  </label>
+                  <select
+                    value={transportMode}
+                    onChange={(e) => setTransportMode(e.target.value)}
+                    disabled={isAddMoreMode}
+                    className={`w-full px-4 py-2.5 bg-[var(--color-bg-sunken)] border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-border-focus)] outline-none transition-all ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  >
+                    {TRANSPORT_MODES.map((mode) => (
+                      <option key={mode.id} value={mode.id}>{mode.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1.5 ml-1">
+                    {TRANSPORT_MODES.find(m => m.id === transportMode)?.description}
+                  </p>
+                </div>
               </div>
 
               {/* Interests */}
@@ -684,191 +657,115 @@ const RecommendationsPage = () => {
                   {t('tripPlanner.interests')}
                   {isAddMoreMode && <span className="ml-2 text-xs text-gray-400">🔒 Locked</span>}
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {INTEREST_OPTIONS.map((interest) => (
-                    <button
-                      key={interest.id}
-                      onClick={() => !isAddMoreMode && toggleInterest(interest.id)}
-                      disabled={isAddMoreMode}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        interests.includes(interest.id)
-                          ? 'bg-secondary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      } ${isAddMoreMode ? 'cursor-not-allowed opacity-70' : ''}`}
-                    >
-                      <span>{interest.emoji}</span>
-                      {t(`interests.${interest.id}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="p-4 bg-secondary-50 rounded-xl">
-                <h3 className="text-sm font-semibold text-secondary-800 mb-2">
-                  {t('tripPlanner.tripSummary')}
-                </h3>
-                <ul className="text-sm text-secondary-700 space-y-1">
-                  <li>📍 {destination}</li>
-                  <li>📅 {duration} {t('tripPlanner.days')}</li>
-                  <li>👥 {groupSize} {t('tripPlanner.travelers')}</li>
-                  <li>💰 LKR {budget.toLocaleString()}</li>
-                  <li>❤️ {interests.length} {t('tripPlanner.interestsSelected')}</li>
-                </ul>
-              </div>
-
-              {/* Saved Items - Grouped by Trip */}
-              {savedItems.length > 0 && (
-                <div className="mt-6 p-4 bg-secondary-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-secondary-800">
-                      {t('recommendations.savedToItinerary')} ({savedItems.length})
-                    </h3>
-                    <button
-                      onClick={handleViewItinerary}
-                      className="text-xs text-secondary-600 hover:text-secondary-700 font-medium flex items-center gap-1"
-                    >
-                      {t('common.viewAll')}
-                      <ArrowRightIcon className="w-3 h-3" />
-                    </button>
+                  <div className="flex flex-wrap gap-2">
+                    {INTEREST_OPTIONS.map((interest) => (
+                      <button
+                        key={interest.id}
+                        onClick={() => !isAddMoreMode && toggleInterest(interest.id)}
+                        disabled={isAddMoreMode}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          interests.includes(interest.id)
+                            ? 'bg-[var(--color-brand-primary)] text-white shadow-sm'
+                            : 'bg-black/5 dark:bg-white/5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-black/10 dark:hover:bg-white/10'
+                        } ${isAddMoreMode ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        <span>{interest.emoji}</span>
+                        {t(`interests.${interest.id}`)}
+                      </button>
+                    ))}
                   </div>
-                  {/* Group by trip */}
-                  {(() => {
-                    const groupedByTrip = savedItems.reduce((acc, item) => {
-                      const tripParts = (item.tripId || '').split('-');
-                      const dateIdx = tripParts.findIndex(p => /^\d{4}$/.test(p));
-                      const tripDest = dateIdx > 0
-                        ? tripParts.slice(0, dateIdx).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
-                        : (tripParts[0]?.charAt(0).toUpperCase() + tripParts[0]?.slice(1)) || destination || 'Trip';
-                      if (!acc[tripDest]) acc[tripDest] = [];
-                      acc[tripDest].push(item);
-                      return acc;
-                    }, {});
-                    return Object.entries(groupedByTrip).map(([tripDest, items]) => (
-                      <div key={tripDest} className="mb-2">
-                        <div className="text-xs font-medium text-secondary-600 mb-1 flex items-center gap-1">
-                          📍 {tripDest} ({items.length})
-                        </div>
-                        <ul className="text-sm text-secondary-700 space-y-0.5 pl-3 max-h-20 overflow-y-auto">
-                          {items.slice(0, 3).map((item, idx) => (
-                            <li key={idx} className="truncate flex items-center gap-1 text-xs">
-                              <CheckCircleIcon className="w-3 h-3 text-secondary-500 flex-shrink-0" />
-                              {item.name}
-                            </li>
-                          ))}
-                          {items.length > 3 && (
-                            <li className="text-secondary-500 text-xs">+{items.length - 3} more</li>
-                          )}
-                        </ul>
-                      </div>
-                    ));
-                  })()}
+                </div>
                 </div>
               )}
-            </div>
+              </div>
 
-            {/* Weather Widget */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <button
-                onClick={() => setShowWeather(!showWeather)}
-                className="w-full flex items-center justify-between text-lg font-bold text-gray-900 mb-4"
-              >
-                <span className="flex items-center gap-2">
-                  <CloudIcon className="w-5 h-5 text-blue-500" />
-                  {t('weather.title')} - {destination}
-                </span>
-                <span className="text-gray-400">{showWeather ? '−' : '+'}</span>
-              </button>
-              {showWeather && (
-                <WeatherWidget
-                  destinationName={destination}
+              {/* Recommendations Component injects here */}
+              <div className="mt-8">
+                <RecommendationPanel
+                  destination={destination}
+                  interests={interests}
+                  budget={budget}
+                  duration={duration}
+                  groupSize={groupSize}
+                  startDate={calculatedStartDate}
+                  endDate={calculatedEndDate}
+                  accommodationType={accommodationType}
+                  transportMode={transportMode}
+                  onAddToItinerary={handleAddToItinerary}
+                  autoFetch={!!tripData}
+                  showFilters={true}
+                  allowGenerate={!!tripData}
+                  isAddMoreMode={isAddMoreMode}
                 />
-              )}
-            </div>
+              </div>
 
-            {/* Map Toggle */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <button
-                onClick={() => setShowMap(!showMap)}
-                className="w-full flex items-center justify-between text-lg font-bold text-gray-900 mb-4"
-              >
-                <span className="flex items-center gap-2">
-                  <MapIcon className="w-5 h-5 text-green-500" />
-                  Explore {destination}
-                </span>
-                <span className="text-gray-400">{showMap ? '−' : '+'}</span>
-              </button>
-              {showMap && (
-                <div className="h-64 rounded-xl overflow-hidden">
-                  <AttractionMap
-                    attractions={getMapAttractions(
-                      aiRecommendations,
-                      destinationAttractions,
-                      sampleAttractions,
-                      coords,
-                      destination
-                    )}
-                    onSelectAttraction={(attraction) => {
-                    // Build Booking.com URL with dates and travelers from trip form
-                    const cleanHotelName = attraction.name.replace(/hotel|resort|villa|guesthouse|inn/gi, '').trim();
-                    let bookingParams = `ss=${encodeURIComponent(cleanHotelName + ', ' + destination)}&label=serendibtrip`;
-                    if (calculatedStartDate) bookingParams += `&checkin=${calculatedStartDate}`;
-                    if (calculatedEndDate) bookingParams += `&checkout=${calculatedEndDate}`;
-                    if (groupSize) bookingParams += `&group_adults=${groupSize}&req_adults=${groupSize}&no_rooms=1`;
-                    const bookingUrl = `https://www.booking.com/searchresults.html?${bookingParams}`;
-                    console.log('Selected:', attraction);
-                    console.log('Booking URL:', bookingUrl);
-                    // You might want to open this URL in a new tab or store it
-                    // window.open(bookingUrl, '_blank');
-                    }}
-                    onAddToItinerary={(attraction) => {
-                      handleAddToItinerary({
-                        name: attraction.name,
-                        description: attraction.description,
-                        location: attraction.location,
-                        category: attraction.category,
-                        type: attraction.type || 'attraction',
-                      });
-                    }}
-                  />
-                </div>
-              )}
             </div>
-
-            {/* Packing List Generator */}
-            <div className="mt-6">
-              <PackingListGenerator
-                tripDetails={{
-                  destination,
-                  duration,
-                  interests,
-                  groupSize,
-                }}
-                weather={null}
-              />
-            </div>
-          </div>
-
-          {/* Recommendations Panel */}
-          <div className="lg:col-span-2">
-            <RecommendationPanel
-              destination={destination}
-              interests={interests}
-              budget={budget}
-              duration={duration}
-              groupSize={groupSize}
-              startDate={calculatedStartDate}
-              endDate={calculatedEndDate}
-              accommodationType={accommodationType}
-              transportMode={transportMode}
-              onAddToItinerary={handleAddToItinerary}
-              autoFetch={!!tripData}
-              showFilters={true}
-              allowGenerate={!!tripData} // Must create a trip from Home first - saves API costs
-            />
           </div>
         </div>
-      </div>
+
+        {/* Right Pane - Standalone Card (Map, Weather, Packing) */}
+        <div className="w-full lg:w-2/5 xl:w-[45%] flex-shrink-0 lg:sticky lg:top-[73px] lg:h-[calc(100vh-73px)] overflow-hidden flex flex-col order-1 lg:order-2 p-3 lg:p-4">
+            <div className="flex-1 flex flex-col h-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+              {/* Tab navigation */}
+              <div className="flex border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] rounded-t-2xl">
+                {[
+                  { id: 'weather', label: t('weather.title'), icon: <CloudIcon className="w-4 h-4" /> },
+                  { id: 'map', label: 'Map', icon: <MapIcon className="w-4 h-4" /> },
+                  { id: 'packing', label: 'Packing', icon: <PackageIcon className="w-4 h-4" /> },
+                ].map((tab) => {
+                  const activeTab = showWeather ? 'weather' : showMap ? 'map' : 'packing';
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        if (tab.id === 'weather') { setShowWeather(true); setShowMap(false); }
+                        else if (tab.id === 'map') { setShowWeather(false); setShowMap(true); }
+                        else { setShowWeather(false); setShowMap(false); }
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors border-b-2 ${
+                        isActive
+                          ? 'border-[var(--color-brand-primary)] text-[var(--color-brand-primary)]'
+                          : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex-1 overflow-y-auto min-h-[400px] h-full">
+                {showMap && (
+                  <div className="w-full h-full pb-16 lg:pb-0">
+                    <AttractionMap
+                      destination={destination}
+                    />
+                  </div>
+                )}
+                {showWeather && (
+                  <div className="p-4 sm:p-6 pb-20">
+                    <WeatherWidget 
+                      destinationName={destination} 
+                      startDate={calculatedStartDate}
+                      endDate={calculatedEndDate}
+                      duration={duration}
+                    />
+                  </div>
+                )}
+                {!showWeather && !showMap && (
+                  <div className="p-4 sm:p-6 pb-20">
+                    <PackingListGenerator
+                      tripDetails={{ destination, duration, interests, groupSize }}
+                      weather={null}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
   );
 };

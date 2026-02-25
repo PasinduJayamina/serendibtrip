@@ -496,18 +496,19 @@ const ItineraryPage = () => {
 
   // Handle view map
   const handleViewMap = (coordinates, dayNumber) => {
-    console.log('View map for day', dayNumber, coordinates);
-    // You can implement map modal or navigate to map view
-    alert(
-      `Viewing route for Day ${dayNumber} with ${
-        coordinates?.length || 0
-      } locations`
-    );
+    // Open Google Maps with all locations for the day as waypoints
+    if (!coordinates || coordinates.length === 0) return;
+    const origin = `${coordinates[0].lat},${coordinates[0].lng}`;
+    const destination = `${coordinates[coordinates.length - 1].lat},${coordinates[coordinates.length - 1].lng}`;
+    const waypoints = coordinates.slice(1, -1).map(c => `${c.lat},${c.lng}`).join('|');
+    const url = waypoints
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}`
+      : `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    window.open(url, '_blank');
   };
 
   // Handle location click
   const handleLocationClick = (coordinates, locationName) => {
-    console.log('Location clicked:', locationName, coordinates);
     // Open Google Maps searching for the place name near the coordinates
     if (locationName) {
       const encodedName = encodeURIComponent(locationName);
@@ -528,7 +529,7 @@ const ItineraryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Page header */}
       <div className="bg-gradient-to-r from-secondary-600 to-accent-600 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8">

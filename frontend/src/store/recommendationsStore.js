@@ -39,7 +39,6 @@ export const useRecommendationsStore = create(
           if (cached) {
             const hasItems = ((cached.topAttractions?.length || 0) + (cached.recommendedRestaurants?.length || 0)) > 0;
             if (hasItems) {
-              console.log('Store: Using cached recommendations for:', destination);
               return cached;
             }
           }
@@ -49,14 +48,12 @@ export const useRecommendationsStore = create(
         const fetchId = Date.now() + '-' + Math.random().toString(36).slice(2);
         set({ loading: true, error: null, _activeFetchId: fetchId });
 
-        console.log('Store: Fetching FRESH recommendations for:', destination);
 
         try {
           const response = await generateItinerary(params);
 
           // Check if this fetch is still the active one (not stale)
           if (get()._activeFetchId !== fetchId) {
-            console.log('Store: Fetch was superseded, discarding results');
             return null;
           }
 

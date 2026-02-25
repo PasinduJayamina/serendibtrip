@@ -599,4 +599,74 @@ router.post(
   }
 );
 
+/**
+ * PUT /api/auth/change-password
+ * Change password for authenticated user
+ */
+router.put('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required',
+      });
+    }
+
+    // Validate new password strength
+    const passwordValidation = isValidPassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message,
+      });
+    }
+
+    // Don't allow same password
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from current password',
+      });
+    }
+
+    // Find user with password field
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Hash new password and save
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await user.save();
+
+    console.log('Password changed successfully for:', user.email);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while changing password. Please try again.',
+    });
+  }
+});
+
 module.exports = router;

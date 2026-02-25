@@ -1,78 +1,69 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
+    screens: {
+      'xs': '320px',
+      'sm': '480px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1440px',
+    },
     extend: {
       colors: {
-        // Ceylon Gold - Primary (inspired by temple gold & spices)
+        // Warm Gold - Primary (inspired by temple gold & tropical sun)
         primary: {
-          DEFAULT: '#D4A853',
-          50: '#FCF8EF',
-          100: '#F7EDDA',
-          200: '#EDD9B5',
-          300: '#E3C590',
-          400: '#D9B16B',
-          500: '#D4A853',
-          600: '#B8893A',
-          700: '#8C682C',
-          800: '#60471E',
-          900: '#342610',
+          50: '#FDF8F0',
+          100: '#FAF1E1',
+          200: '#F4DFBD',
+          300: '#EDCE99',
+          400: '#E6BC75',
+          500: '#E8A838', // Brand Warm
+          600: '#C78822',
+          700: '#996614',
+          800: '#66420A',
+          900: '#332003',
         },
-        // Tropical Green - Secondary (tea plantations, jungles)
+        // Deep Ocean - Secondary (deep water, primary text contrast)
         secondary: {
-          DEFAULT: '#2D6A4F',
-          50: '#E8F3EE',
-          100: '#D1E7DD',
-          200: '#A3CFBB',
-          300: '#75B799',
-          400: '#479F77',
-          500: '#2D6A4F',
-          600: '#245540',
-          700: '#1B4030',
-          800: '#122B20',
-          900: '#091610',
+          50: '#F0F3F5',
+          100: '#E1E8EC',
+          200: '#C3D0D8',
+          300: '#A1B7C2',
+          400: '#698B9D',
+          500: '#1B3A4B', // Brand Deep
+          600: '#142C39',
+          700: '#0E1F28',
+          800: '#081217',
+          900: '#030608',
         },
-        // Ocean Blue - Accent (beaches, coastal waters)
+        // Terracotta - Accent (clay, spices, sunsets)
         accent: {
-          DEFAULT: '#1E88A8',
-          50: '#E6F4F7',
-          100: '#CCE9EF',
-          200: '#99D3DF',
-          300: '#66BDCF',
-          400: '#33A7BF',
-          500: '#1E88A8',
-          600: '#186D87',
-          700: '#125265',
-          800: '#0C3744',
-          900: '#061B22',
+          50: '#FDF1EE',
+          100: '#FBE3DE',
+          200: '#F6C7BC',
+          300: '#F1ABAD',
+          400: '#E87D6B',
+          500: '#D4553A', // Brand Accent
+          600: '#B03F27',
+          700: '#872D1A',
+          800: '#5C1C0F',
+          900: '#330D05',
         },
-        // Warm Sand - Neutral (ancient cities, beaches)
+        // Warm Sand - Neutral backgrounds
         sand: {
-          DEFAULT: '#F5E6D3',
-          50: '#FDFAF6',
-          100: '#FAF5ED',
-          200: '#F5E6D3',
-          300: '#E8D4BA',
-          400: '#DBC2A1',
-          500: '#CEB088',
-          600: '#B89A6F',
-          700: '#8F7556',
-          800: '#66503D',
-          900: '#3D2B24',
-        },
-        // Terracotta - Warning/Earth tones
-        terracotta: {
-          DEFAULT: '#C75B39',
-          50: '#FCF0EC',
-          100: '#F9E1D9',
-          200: '#F3C3B3',
-          300: '#EDA58D',
-          400: '#E78767',
-          500: '#C75B39',
-          600: '#9F492E',
-          700: '#773722',
-          800: '#4F2517',
-          900: '#27130B',
+          50: '#FDFBF7', // Surface 0
+          100: '#F5F1EB', // Surface 2
+          200: '#EBE2D5',
+          300: '#DCCBBA',
+          400: '#CDB49E',
+          500: '#BF9E82',
+          600: '#997D65',
+          700: '#735C4A',
+          800: '#4D3B2E',
+          900: '#261C16',
         },
       },
       fontFamily: {

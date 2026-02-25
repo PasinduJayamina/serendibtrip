@@ -16,7 +16,6 @@ import { useUserStore } from '../store/userStore';
 import { useToast } from '../components/ui/Toast';
 import {
   ProfileForm,
-  PreferencesSelector,
   FavoritesList,
   SavedTripsList,
   SettingsPanel,
@@ -31,7 +30,6 @@ const UserProfilePage = () => {
   // Tab configuration with translation keys
   const TABS = [
     { id: 'profile', labelKey: 'profile.tabs.profile', icon: User },
-    { id: 'preferences', labelKey: 'profile.tabs.preferences', icon: Sliders },
     { id: 'favorites', labelKey: 'profile.tabs.favorites', icon: Heart },
     { id: 'trips', labelKey: 'profile.tabs.myTrips', icon: Calendar },
     { id: 'settings', labelKey: 'profile.tabs.settings', icon: Settings },
@@ -48,6 +46,7 @@ const UserProfilePage = () => {
     tripsLoading,
     fetchProfile,
     fetchTrips,
+    fetchFavorites,
     updateProfile,
     updatePreferences,
     removeFavorite,
@@ -78,11 +77,12 @@ const UserProfilePage = () => {
         }
       });
     }
-    // Also refresh trips to get latest savedItems data
+    // Also refresh trips and favorites to get latest data
     if (token) {
       fetchTrips().catch(console.error);
+      fetchFavorites().catch(console.error);
     }
-  }, [user, fetchProfile, fetchTrips, clearError]);
+  }, [user, fetchProfile, fetchTrips, fetchFavorites, clearError]);
 
   // Handle profile update
   const handleProfileSave = async (profileData) => {
@@ -144,15 +144,15 @@ const UserProfilePage = () => {
   // Not authenticated - show sign in prompt
   if (!hasValidToken) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-primary)' }}>
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-secondary-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <User className="w-10 h-10 text-secondary-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
             {t('profile.signInPrompt')}
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-[var(--color-text-secondary)] mb-6">
             {t('profile.signInDescription')}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -163,7 +163,7 @@ const UserProfilePage = () => {
               {t('profile.goToHome')}
             </button>
           </div>
-          <p className="text-sm text-gray-500 mt-6">
+          <p className="text-sm text-[var(--color-text-muted)] mt-6">
             {t('profile.comingSoon')}
           </p>
         </div>
@@ -174,10 +174,10 @@ const UserProfilePage = () => {
   // Loading state
   if (isLoading && !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg-primary)' }}>
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-secondary-500 mx-auto" />
-          <p className="mt-4 text-gray-600">{t('profile.loading')}</p>
+          <p className="mt-4 text-[var(--color-text-secondary)]">{t('profile.loading')}</p>
         </div>
       </div>
     );
@@ -186,13 +186,13 @@ const UserProfilePage = () => {
   // Error state
   if (error && !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg-primary)' }}>
         <div className="text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-          <h2 className="mt-4 text-xl font-semibold text-gray-900">
+          <h2 className="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
             {t('profile.unableToLoad')}
           </h2>
-          <p className="mt-2 text-gray-600">{error}</p>
+          <p className="mt-2 text-[var(--color-text-secondary)]">{error}</p>
           <button
             onClick={() => {
               clearError();
@@ -218,14 +218,7 @@ const UserProfilePage = () => {
             isLoading={isLoading}
           />
         );
-      case 'preferences':
-        return (
-          <PreferencesSelector
-            preferences={user?.preferences}
-            onSave={handlePreferencesSave}
-            isLoading={isLoading}
-          />
-        );
+
       case 'favorites':
         return (
           <FavoritesList
@@ -257,14 +250,14 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white">
+      <div className="bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[var(--color-text-primary)]">
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Back Button */}
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
+            className="flex items-center gap-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             {t('profile.back')}
@@ -272,7 +265,7 @@ const UserProfilePage = () => {
 
           {/* Profile Header */}
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-white/10 border-4 border-white/20">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-[var(--color-brand-primary)]/10 border-4 border border-[var(--color-border)] text-[var(--color-brand-primary)]">
               {user?.profilePicture ? (
                 <img
                   src={user.profilePicture}
@@ -287,9 +280,9 @@ const UserProfilePage = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold">{user?.fullName || 'User'}</h1>
-              <p className="text-white/80">{user?.email}</p>
+              <p className="text-[var(--color-text-secondary)]">{user?.email}</p>
               {user?.bio && (
-                <p className="text-sm text-white/60 mt-1 max-w-md truncate">
+                <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-md truncate">
                   {user.bio}
                 </p>
               )}
@@ -300,22 +293,22 @@ const UserProfilePage = () => {
           <div className="flex gap-6 mt-6">
             <div className="text-center">
               <p className="text-2xl font-bold">{trips?.filter(t => t.savedItems?.length > 0).length || 0}</p>
-              <p className="text-sm text-white/80">{t('profile.stats.trips')}</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">{t('profile.stats.trips')}</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{favorites?.length || 0}</p>
-              <p className="text-sm text-white/80">{t('profile.stats.favorites')}</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">{t('profile.stats.favorites')}</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold">{user?.reviews?.length || 0}</p>
-              <p className="text-sm text-white/80">{t('profile.stats.reviews')}</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">{t('profile.stats.reviews')}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 sticky top-16 z-40">
+      <div className="bg-[var(--color-bg-secondary)] border-b border-[var(--color-border)] sticky top-16 z-40">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex gap-1 overflow-x-auto py-2 -mb-px">
             {TABS.map((tab) => (
@@ -325,7 +318,7 @@ const UserProfilePage = () => {
                 className={`flex items-center gap-2 px-4 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-secondary-500 text-secondary-500'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -338,7 +331,7 @@ const UserProfilePage = () => {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="card p-6">
           {renderTabContent()}
         </div>
       </div>

@@ -183,7 +183,12 @@ export const categorizeExpense = (item) => {
     item.category === 'accommodation' ||
     item.name?.toLowerCase().includes('hotel') ||
     item.name?.toLowerCase().includes('resort') ||
-    item.name?.toLowerCase().includes('stay')
+    item.name?.toLowerCase().includes('stay') ||
+    item.name?.toLowerCase().includes('homestay') ||
+    item.name?.toLowerCase().includes('hostel') ||
+    item.name?.toLowerCase().includes('lodge') ||
+    item.name?.toLowerCase().includes('inn') ||
+    item.name?.toLowerCase().includes('villa')
   ) {
     return 'accommodation';
   }
@@ -193,9 +198,33 @@ export const categorizeExpense = (item) => {
     item.name?.toLowerCase().includes('taxi') ||
     item.name?.toLowerCase().includes('transfer') ||
     item.name?.toLowerCase().includes('train') ||
-    item.name?.toLowerCase().includes('bus')
+    item.name?.toLowerCase().includes('bus') ||
+    item.name?.toLowerCase().includes('transport') ||
+    item.name?.toLowerCase().includes('tuk-tuk')
   ) {
     return 'transportation';
+  }
+
+  // Food & dining keyword matching
+  const nameLower = item.name?.toLowerCase() || '';
+  if (
+    nameLower.includes('restaurant') ||
+    nameLower.includes('ice cream') ||
+    nameLower.includes('cafe') ||
+    nameLower.includes('café') ||
+    nameLower.includes('coffee') ||
+    nameLower.includes('bakery') ||
+    nameLower.includes('bistro') ||
+    nameLower.includes('dining') ||
+    nameLower.includes('eatery') ||
+    nameLower.includes('tiffin') ||
+    nameLower.includes('food court') ||
+    nameLower.includes('juice') ||
+    nameLower.includes('dessert') ||
+    nameLower.includes('kottu') ||
+    nameLower.includes('rice & curry')
+  ) {
+    return 'food';
   }
 
   // Default to activities for attractions, tours, etc.

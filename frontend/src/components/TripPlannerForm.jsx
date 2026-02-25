@@ -227,11 +227,11 @@ const AutocompleteInput = ({
               ? `${id}-option-${highlightedIndex}`
               : undefined
           }
-          className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+          className={`w-full pl-10 pr-4 py-3.5 rounded-xl border-2 ${
             error
-              ? "border-red-500 focus:ring-red-500"
-              : "border-gray-300 focus:ring-secondary-500"
-          } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
+              ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+              : "border-[var(--color-border)] focus:ring-[var(--color-brand-primary)] focus:border-[var(--color-brand-primary)] bg-[var(--color-bg-sunken)]"
+          } outline-none transition-all`}
         />
       </div>
 
@@ -241,7 +241,7 @@ const AutocompleteInput = ({
           id={`${id}-listbox`}
           role="listbox"
           onMouseDown={handleMouseDown}
-          className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+          className="absolute z-20 w-full mt-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl max-h-60 overflow-auto overflow-x-hidden"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <li
@@ -251,14 +251,14 @@ const AutocompleteInput = ({
               aria-selected={highlightedIndex === index}
               onClick={() => handleSelect(suggestion)}
               onMouseEnter={() => setHighlightedIndex(index)}
-              className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors ${
                 highlightedIndex === index
-                  ? "bg-secondary-500/10 text-secondary-500"
-                  : "hover:bg-gray-50"
+                  ? "bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)]"
+                  : "hover:bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)]"
               }`}
             >
               <MapPin className="w-4 h-4" />
-              {suggestion}
+              <span className="font-medium">{suggestion}</span>
             </li>
           ))}
         </ul>
@@ -288,10 +288,10 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
         return (
           <label
             key={interest.id}
-            className={`relative flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${
+            className={`relative flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] ${
               isSelected
-                ? "border-secondary-500 bg-secondary-500/10 text-secondary-500"
-                : "border-gray-200 hover:border-gray-300 bg-white"
+                ? "border-[var(--color-brand-primary)] bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] shadow-sm"
+                : "border-[var(--color-border)] hover:border-[var(--color-brand-primary)]/50 bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)]"
             } ${error ? "border-red-300" : ""}`}
           >
             <input
@@ -301,13 +301,13 @@ const InterestsSelect = ({ value = [], onChange, error }) => {
               className="sr-only"
               aria-describedby={error ? "interests-error" : undefined}
             />
-            <span className="text-lg" aria-hidden="true">
+            <span className="text-xl" aria-hidden="true">
               {interest.icon}
             </span>
-            <span className="text-sm font-medium">{interest.label}</span>
+            <span className="text-sm font-bold">{interest.label}</span>
             {isSelected && (
               <Check
-                className="absolute top-1 right-1 w-4 h-4 text-secondary-500"
+                className="absolute top-2 right-2 w-4 h-4 text-[var(--color-brand-primary)]"
                 aria-hidden="true"
               />
             )}
@@ -576,25 +576,19 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
         </div>
       )}
 
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full w-full">
         <form
           onSubmit={handleSubmit(processSubmit)}
-          className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
+          className="space-y-6 md:space-y-8 p-2 md:p-4"
           noValidate
         >
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-              {t("tripPlanner.title")}
-            </h2>
-            <p className="text-gray-500 mt-2">{t("tripPlanner.subtitle")}</p>
-          </div>
+          {/* Removed Header */}
 
           {/* Destination Field */}
           <div className="space-y-2">
             <label
               htmlFor="destination"
-              className="block text-sm font-semibold text-gray-700"
+              className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
             >
               {t("tripPlanner.destination")}{" "}
               <span className="text-red-500">*</span>
@@ -639,7 +633,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="startDate"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
                 {t("tripPlanner.startDate")}{" "}
                 <span className="text-red-500">*</span>
@@ -659,11 +653,11 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
                       new Date(value) >= new Date(today) ||
                       t("tripPlanner.validation.startDatePast"),
                   })}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                  className={`w-full pl-10 pr-4 py-3.5 rounded-xl border-2 ${
                     errors.startDate
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-secondary-500"
-                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                      ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                      : "border-[var(--color-border)] focus:ring-[var(--color-brand-primary)] focus:border-[var(--color-brand-primary)] bg-[var(--color-bg-sunken)]"
+                  } outline-none transition-all text-[var(--color-text-primary)]`}
                 />
               </div>
               {errors.startDate && (
@@ -681,7 +675,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="endDate"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
                 {t("tripPlanner.endDate")}{" "}
                 <span className="text-red-500">*</span>
@@ -707,11 +701,11 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
                       }
                     }
                   })}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                  className={`w-full pl-10 pr-4 py-3.5 rounded-xl border-2 ${
                     errors.endDate
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-secondary-500"
-                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                      ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                      : "border-[var(--color-border)] focus:ring-[var(--color-brand-primary)] focus:border-[var(--color-brand-primary)] bg-[var(--color-bg-sunken)]"
+                  } outline-none transition-all text-[var(--color-text-primary)]`}
                 />
               </div>
               {errors.endDate && (
@@ -728,9 +722,9 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
 
           {/* Trip Duration Display */}
           {tripDuration() > 0 && (
-            <div className="bg-secondary-500/5 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
-              <Calendar className="w-5 h-5 text-secondary-500" />
-              <span className="text-secondary-500 font-medium">
+            <div className="bg-[var(--color-brand-primary)]/10 border border-[var(--color-brand-primary)]/20 rounded-xl p-4 flex items-center justify-center gap-2">
+              <Calendar className="w-5 h-5 text-[var(--color-brand-primary)]" />
+              <span className="text-[var(--color-brand-deep)] dark:text-[var(--color-text-primary)] font-bold">
                 {t("tripPlanner.tripDuration")}: {tripDuration()}{" "}
                 {tripDuration() === 1
                   ? t("tripPlanner.day")
@@ -745,7 +739,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="budget"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
                 {t("tripPlanner.budgetLKR")}{" "}
                 <span className="text-red-500">*</span>
@@ -777,11 +771,11 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
                     },
                     valueAsNumber: true,
                   })}
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                  className={`w-full pl-10 pr-4 py-3.5 rounded-xl border-2 ${
                     errors.budget
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-secondary-500"
-                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                      ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                      : "border-[var(--color-border)] focus:ring-[var(--color-brand-primary)] focus:border-[var(--color-brand-primary)] bg-[var(--color-bg-sunken)]"
+                  } outline-none transition-all text-[var(--color-text-primary)]`}
                 />
               </div>
               {errors.budget && (
@@ -803,7 +797,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="groupSize"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
                 {t("tripPlanner.groupSize")}{" "}
                 <span className="text-red-500">*</span>
@@ -819,11 +813,11 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
                     required: t("tripPlanner.validation.groupSizeRequired"),
                     valueAsNumber: true,
                   })}
-                  className={`w-full pl-10 pr-10 py-3 rounded-lg border appearance-none ${
+                  className={`w-full pl-10 pr-10 py-3.5 rounded-xl border-2 appearance-none ${
                     errors.groupSize
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-secondary-500"
-                  } focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
+                      ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                      : "border-[var(--color-border)] focus:ring-[var(--color-brand-primary)] focus:border-[var(--color-brand-primary)] bg-[var(--color-bg-sunken)]"
+                  } outline-none transition-all text-[var(--color-text-primary)] cursor-pointer`}
                 >
                   {GROUP_SIZES.map((size) => (
                     <option key={size} value={size}>
@@ -853,9 +847,9 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
 
           {/* Budget Per Person Display */}
           {budgetPerPerson() > 0 && (
-            <div className="bg-gradient-to-r from-secondary-500/5 to-secondary-500/10 border border-secondary-500/20 rounded-lg p-4 flex items-center justify-center gap-2">
-              <Wallet className="w-5 h-5 text-secondary-500" />
-              <span className="text-secondary-500 font-medium">
+            <div className="bg-gradient-to-r from-[var(--color-brand-primary)]/10 to-[var(--color-brand-primary)]/5 border border-[var(--color-brand-primary)]/20 rounded-xl p-4 flex items-center justify-center gap-2">
+              <Wallet className="w-5 h-5 text-[var(--color-brand-primary-hover)]" />
+              <span className="text-[var(--color-brand-deep)] dark:text-[var(--color-text-primary)] font-bold">
                 {t("tripPlanner.budgetPerPerson")}:{" "}
                 {formatCurrency(budgetPerPerson())}
               </span>
@@ -868,16 +862,16 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="accommodationType"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
-                <Home className="w-4 h-4 inline mr-1 text-gray-500" />
+                <Home className="w-4 h-4 inline mr-1 text-[var(--color-brand-primary)] mb-1" />
                 Accommodation Type
               </label>
               <div className="relative">
                 <select
                   id="accommodationType"
                   {...register("accommodationType")}
-                  className="w-full pl-4 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-secondary-500 focus:ring-2 focus:border-transparent outline-none transition-all bg-white appearance-none"
+                  className="w-full pl-4 pr-10 py-3.5 rounded-xl border-2 border-[var(--color-border)] focus:border-[var(--color-brand-primary)] focus:ring-[var(--color-brand-primary)] outline-none transition-all bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)] appearance-none cursor-pointer"
                 >
                   {ACCOMMODATION_TYPES.map((type) => (
                     <option key={type.id} value={type.id}>
@@ -899,16 +893,16 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <div className="space-y-2">
               <label
                 htmlFor="transportMode"
-                className="block text-sm font-semibold text-gray-700"
+                className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
               >
-                <Car className="w-4 h-4 inline mr-1 text-gray-500" />
+                <Car className="w-4 h-4 inline mr-1 text-[var(--color-brand-primary)] mb-1" />
                 Transport Mode
               </label>
               <div className="relative">
                 <select
                   id="transportMode"
                   {...register("transportMode")}
-                  className="w-full pl-4 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-secondary-500 focus:ring-2 focus:border-transparent outline-none transition-all bg-white appearance-none"
+                  className="w-full pl-4 pr-10 py-3.5 rounded-xl border-2 border-[var(--color-border)] focus:border-[var(--color-brand-primary)] focus:ring-[var(--color-brand-primary)] outline-none transition-all bg-[var(--color-bg-sunken)] text-[var(--color-text-primary)] appearance-none cursor-pointer"
                 >
                   {TRANSPORT_MODES.map((mode) => (
                     <option key={mode.id} value={mode.id}>
@@ -931,12 +925,12 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
           <div className="space-y-3">
             <label
               id="interests-label"
-              className="block text-sm font-semibold text-gray-700"
+              className="block text-sm font-bold text-[var(--color-text-primary)] ml-1"
             >
-              <Heart className="w-4 h-4 inline mr-1 text-secondary-500" />
+              <Heart className="w-4 h-4 inline mr-1 text-[var(--color-brand-accent)] mb-1" />
               {t("tripPlanner.interests")}{" "}
               <span className="text-red-500">*</span>
-              <span className="font-normal text-gray-500 ml-2">
+              <span className="font-normal text-[var(--color-text-secondary)] ml-2">
                 ({t("tripPlanner.selectAtLeastOne")})
               </span>
             </label>
@@ -983,7 +977,7 @@ const TripPlannerForm = ({ onSubmit, existingTrips = [], localTripsMetadata = {}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-4 px-6 rounded-xl bg-secondary-500 hover:bg-[#1a6f7a] text-white font-semibold text-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-secondary-500/30"
+              className="w-full md:w-auto md:px-12 mx-auto py-4 rounded-xl bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary-hover)] text-white dark:text-gray-900 font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-brand-primary)] transform hover:-translate-y-0.5"
             >
               {isSubmitting ? (
                 <>
